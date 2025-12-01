@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const pool = require('./db');
+const authRouter = require('./auth');
+const planRouter = require('./plan'); // ⬅️ NEW: Import Plan Routes
 require('dotenv').config();
 
 const app = express();
@@ -9,28 +11,30 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-console.log("1. Server is initializing...");
+// ---------------- ROUTES ---------------- //
 
-// Test Route
+// Mount Routers
+app.use('/auth', authRouter);
+app.use('/user', planRouter); // ⬅️ NEW: Server knows about /user/setup-plan
+
+// Test Route: Check if server is alive
 app.get('/', (req, res) => {
     res.send("Physique.io Brain is Active! 🧠");
 });
 
-// Database Route
+// Test Database: Fetch all food items (for quick check)
 app.get('/test-db', async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM food_items');
         res.json(result.rows);
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send("Server Error");
+        console.error('DB Test Failed:', err.message);
+        res.status(500).send("Server Error: Check terminal for details.");
     }
 });
 
-console.log("2. Routes are set up...");
-
-// START THE SERVER
+// ---------------- START SERVER ---------------- //
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-    console.log("3. SUCCESS! Server is running on port " + PORT);
+    console.log(`Server running on port ${PORT}`);
 });
