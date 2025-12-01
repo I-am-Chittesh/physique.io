@@ -1,0 +1,14 @@
+{
+    "sqltools.connections": [
+        {
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "db.nicqgagedstcftnlpwkx.supabase.co",
+            "port": 5432,
+            "driver": "PostgreSQL",
+            "name": "physique.io",
+            "database": "postgres",
+            "username": "postgres"
+        }
+    ]
+}
