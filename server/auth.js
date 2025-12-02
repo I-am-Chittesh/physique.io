@@ -42,7 +42,11 @@ router.post('/signup', async (req, res) => {
     } catch (err) {
         // Handles errors like duplicate username (if we had a unique constraint)
         console.error('Signup Error:', err);
-        res.status(500).json({ error: 'Failed to create user account.', details: err.message });
+        // Postgres unique-violation error code is 23505
+        if (err && err.code === '23505') {
+            return res.status(409).json({ error: 'Username already exists.' });
+        }
+        res.status(500).json({ error: 'Failed to create user account.' });
     }
 });
 

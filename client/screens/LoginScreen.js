@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityInd
 import { useNavigation } from '@react-navigation/native';
 
 // --- CONFIG: You MUST update this URL for your phone to work ---
-const API_BASE_URL = 'http.//192.168.29.224:5000'; // <-- CHANGE THIS IP
+const API_BASE_URL = 'http://192.168.29.224:5000'; // <-- CHANGE THIS IP
 
 const LoginScreen = () => {
     const navigation = useNavigation();
@@ -11,6 +11,9 @@ const LoginScreen = () => {
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const { width, height } = useWindowDimensions();
+
+    // Form validation: both fields must contain non-whitespace characters
+    const isFormValid = username.trim().length > 0 && password.trim().length > 0;
 
     const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 
@@ -43,21 +46,83 @@ const LoginScreen = () => {
         // const iconTopPad = Math.max(0, iconCenteredTop + iconExtra + 50); // Removed duplicate declaration
     
     // --- TEMPORARY Placeholder Function for Day 4 ---
-    const handleLogin = () => {
-        const trimmedUsername = username.trim();
-        const trimmedPassword = password.trim();
+    // Function to handle automatic navigation after successful login/signup
+const navigateAfterAuth = (user) => {
+    // Check the 'plan_set' field returned by the backend (Day 3 logic)
+    if (user.plan_set) {
+        navigation.replace('Dashboard'); // Plan exists, go straight to the app
+    } else {
+        navigation.replace('Setup'); // New user/plan missing, redirect to setup wizard
+    }
+};
 
-        if (!trimmedUsername || !trimmedPassword) {
-            Alert.alert('Error', 'Please enter both username and password.');
-            return;
+// ➡️ SIGNUP LOGIC (Used if Login fails)
+const handleSignup = async () => {
+    // Use the existing username and password variables
+    try {
+        Alert.alert("Attempting Signup", "Creating a new account...");
+        let response = await fetch(`${API_BASE_URL}/auth/signup`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password }),
+        });
+
+        let data = await response.json();
+
+        if (response.ok) {
+            Alert.alert("Account Created!", "Time to build your plan.");
+            // After successful signup, user is new, so always navigate to Setup
+            navigation.replace('Setup'); 
+        } else {
+             Alert.alert("Signup Failed", data.details || data.error || "An unknown error occurred.");
         }
-        // In the final app, API logic replaces this line:
-        navigation.replace('Setup'); 
-    };
+    } catch (error) {
+        Alert.alert("Network Error", "Could not complete signup.");
+    }
+};
 
-    // Form validation: both fields must contain non-whitespace characters
-    const isFormValid = username.trim().length > 0 && password.trim().length > 0;
+// ➡️ PRIMARY LOGIN ATTEMPT
+const handleLogin = async () => {
+    console.log('handleLogin invoked', { username, password });
+    // Validation check: Use the combined logic
+    const trimmedUsername = username.trim();
+    const trimmedPassword = password.trim();
 
+    if (!trimmedUsername || !trimmedPassword) {
+        Alert.alert("Error", "Please enter both username and password.");
+        return;
+    }
+
+    setIsLoading(true);
+
+    try {
+        // First attempt: Try to log in
+        let response = await fetch(`${API_BASE_URL}/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: trimmedUsername, password: trimmedPassword }),
+        });
+
+        let data = await response.json();
+
+        if (response.ok) {
+            // Login Success
+            navigateAfterAuth(data.user);
+            
+        } else if (response.status === 401 || response.status === 404) {
+             // If account not found (404) or credentials invalid (401), try signing up.
+             handleSignup();
+        } else {
+            Alert.alert("Login Failed", data.error || "Could not connect to server.");
+        }
+
+    } catch (error) {
+        console.error("Network Error:", error);
+        Alert.alert("Network Error", "Check your IP and ensure the Node server is running.");
+    } finally {
+        setIsLoading(false);
+    }
+};
     // ----------------------------------------------------
     // ➡️ UI RENDER (The components you see)
     // ----------------------------------------------------
@@ -102,11 +167,13 @@ const LoginScreen = () => {
                     value={password}
                     onChangeText={setPassword}
                 />
+
+                {/* (debug/test button removed) */}
                 
                 {/* 4. ACTION BUTTON is moved to bottom for better UX on small screens */}
             </View>
             {/* Bottom fixed small button */}
-            <View style={{ position: 'absolute', left: 0, right: 0, bottom: bottomPadding, alignItems: 'center' }}>
+            <View style={{ position: 'absolute', left: 0, right: 0, bottom: bottomPadding, alignItems: 'center', zIndex: 999, elevation: 20 }}>
                 <TouchableOpacity
                     style={[
                         styles.button,
@@ -115,7 +182,8 @@ const LoginScreen = () => {
                         (!isFormValid || isLoading) && { opacity: 0.6 },
                     ]}
                     onPress={handleLogin}
-                    disabled={!isFormValid || isLoading}
+                    disabled={isLoading}
+                    accessibilityRole="button"
                 >
                     {isLoading ? (
                         <ActivityIndicator color="#fff" />
@@ -197,6 +265,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginTop: 15,
     },
+    
     buttonText: {
         color: '#fff', // Bright White
         fontWeight: 'bold', // Montserrat Bold
