@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, useWindowDimensions, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
 // --- CONFIG: You MUST update this URL for your phone to work ---
@@ -10,6 +10,28 @@ const LoginScreen = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const { width, height } = useWindowDimensions();
+
+    const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
+
+    // Responsive typography and spacing
+    // reduce horizontal padding so layout is tighter on small screens
+    const contentPadding = clamp(Math.round(width * 0.04), 8, 60);
+    const titleMargin = clamp(Math.round(height * 0.04), 12, 80);
+    const inputHeight = clamp(Math.round(height * 0.055), 40, 64);
+    const buttonPadding = clamp(Math.round(width * 0.035), 8, 28);
+
+    // Semi-circle sizing (height and radius) respond to height/width
+    const topShapeHeight = clamp(Math.round(height * 0.32), 120, Math.round(height * 0.45));
+    const topShapeRadius = clamp(Math.round(width * 0.5), 80, 600);
+
+    // Icon sizing — proportional to width, allow large but clamp
+    const iconBase = Math.round(width * 0.22);
+    const iconSize = clamp(Math.round(iconBase * 2), 58, 360);
+        // place the icon vertically centered inside the semicircle (no extra fixed padding)
+        const iconCenteredTop = Math.round(topShapeHeight * 0.5 - iconSize * 0.5);
+        const iconTopPad = Math.max(0, iconCenteredTop);
+        // const iconTopPad = Math.max(0, iconCenteredTop + iconExtra + 50); // Removed duplicate declaration
     
     // --- TEMPORARY Placeholder Function for Day 4 ---
     const handleLogin = () => {
@@ -28,13 +50,23 @@ const LoginScreen = () => {
         <View style={styles.container}>
             
             {/* The 30% Contrast Blue Semi-Circle Shape */}
-            <View style={styles.topShape} /> 
+            <View style={[styles.topShape, { height: topShapeHeight, borderBottomLeftRadius: topShapeRadius, borderBottomRightRadius: topShapeRadius }]}>
+                {/* Icon inside the semi-circle. Place a file named `icons.png` in `client/assets/` */}
+                <Image
+                    source={require('../assets/icons.png')}
+                    style={[
+                        styles.icon,
+                        { width: iconSize, height: iconSize, position: 'absolute', top: iconTopPad, alignSelf: 'center', borderRadius: iconSize / 2 },
+                    ]}
+                    resizeMode="contain"
+                />
+            </View>
             
             {/* Main Centered Content Wrapper */}
-            <View style={styles.contentWrapper}>
+            <View style={[styles.contentWrapper, { padding: contentPadding }]}>
                 
-                {/* 1. TITLE: Primary Orange, Bold, Size 30 */}
-                <Text style={styles.title}>Physique.io</Text>
+                {/* 1. TITLE: Primary Orange, Bold, Fixed Size 50 */}
+                <Text style={[styles.title, { fontSize: 50, marginBottom: titleMargin }]}>Physique.io</Text>
                 
                 {/* 2. USERNAME INPUT */}
                 <TextInput
@@ -58,7 +90,7 @@ const LoginScreen = () => {
                 
                 {/* 4. ACTION BUTTON: Orange BG, Text 'Go' */}
                 <TouchableOpacity 
-                    style={styles.button} 
+                    style={[styles.button, { padding: buttonPadding }]} 
                     onPress={handleLogin}
                     disabled={isLoading}
                 >
@@ -89,6 +121,8 @@ const styles = StyleSheet.create({
         borderBottomRightRadius: 150,
         position: 'absolute',
         top: 0,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     
     // Wrapper for Inputs/Buttons to center them
@@ -101,10 +135,21 @@ const styles = StyleSheet.create({
     },
     
     title: {
-        fontSize: 30,
+        fontSize: 50,
         fontWeight: 'bold',
         marginBottom: 40,
         color: '#FF5733', // Primary Orange
+    },
+
+    icon: {
+        // subtle shadow and border for better contrast
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 6,
+        elevation: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.22)',
     },
     
     // Input Styling (Light Grey BG, Black Text, Height 40, No Border)
