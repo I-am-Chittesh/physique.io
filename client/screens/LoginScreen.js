@@ -10,6 +10,7 @@ const LoginScreen = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const { width, height } = useWindowDimensions();
 
     // Form validation: both fields must contain non-whitespace characters
@@ -29,12 +30,14 @@ const LoginScreen = () => {
     // Semi-circle sizing (height and radius) respond to height/width
     // Make the semicircle larger and responsive: height based on a portion of screen height
     // and radius based on a portion of screen width. Reduce both by 20% per request.
-    const baseTopShapeHeight = Math.round(height * 0.38);
-    const reducedTopShapeHeight = Math.round(baseTopShapeHeight * 0.8); // reduce by 20%
+    // Make the semicircle slightly smaller by 10% from the previous size
+    const baseTopShapeHeight = Math.round(height * 0.48 * 0.9); // 0.48 * 0.9 = 0.432
+    const reducedTopShapeHeight = Math.round(baseTopShapeHeight * 0.95);
     const topShapeHeight = clamp(reducedTopShapeHeight, 140, Math.round(height * 0.6));
 
-    const baseTopShapeRadius = Math.round(width * 0.6);
-    const reducedTopShapeRadius = Math.round(baseTopShapeRadius * 0.8); // reduce by 20%
+    // Reduce radius by 10% from previous wide size
+    const baseTopShapeRadius = Math.round(width * 0.85 * 0.9); // 0.85 * 0.9 = 0.765
+    const reducedTopShapeRadius = Math.round(baseTopShapeRadius * 0.95);
     const topShapeRadius = clamp(reducedTopShapeRadius, topShapeHeight, Math.round(width * 0.9));
 
     // Icon sizing — proportional to width, allow large but clamp
@@ -50,9 +53,9 @@ const LoginScreen = () => {
 const navigateAfterAuth = (user) => {
     // Check the 'plan_set' field returned by the backend (Day 3 logic)
     if (user.plan_set) {
-        navigation.replace('Dashboard'); // Plan exists, go straight to the app
+        navigation.navigate('Dashboard'); // Plan exists, go straight to the app
     } else {
-        navigation.replace('Setup'); // New user/plan missing, redirect to setup wizard
+        navigation.navigate('Setup'); // New user/plan missing, redirect to setup wizard
     }
 };
 
@@ -72,7 +75,7 @@ const handleSignup = async () => {
         if (response.ok) {
             Alert.alert("Account Created!", "Time to build your plan.");
             // After successful signup, user is new, so always navigate to Setup
-            navigation.replace('Setup'); 
+            navigation.navigate('Setup'); 
         } else {
              Alert.alert("Signup Failed", data.details || data.error || "An unknown error occurred.");
         }
@@ -128,10 +131,8 @@ const handleLogin = async () => {
     // ----------------------------------------------------
     return (
         <View style={styles.container}>
-            
-            {/* The 30% Contrast Blue Semi-Circle Shape */}
+            {/* The reduced semicircle header */}
             <View style={[styles.topShape, { height: topShapeHeight, borderBottomLeftRadius: topShapeRadius, borderBottomRightRadius: topShapeRadius }]}>
-                {/* Icon inside the semi-circle. Place a file named `icons.png` in `client/assets/` */}
                 <Image
                     source={require('../assets/icons.png')}
                     style={[
@@ -141,56 +142,54 @@ const handleLogin = async () => {
                     resizeMode="contain"
                 />
             </View>
-            
-            {/* Main Centered Content Wrapper */}
-            <View style={[styles.contentWrapper, { padding: contentPadding, paddingBottom: bottomPadding + 24 }]}>
-                
-                {/* 1. TITLE: Primary Orange, Bold, Fixed Size 50 */}
-                <Text style={[styles.title, { fontSize: 50, marginBottom: titleMargin }]}>Physique.io</Text>
-                
-                {/* 2. USERNAME INPUT */}
-                <TextInput
-                    style={styles.input}
-                    placeholder="Username"
-                    placeholderTextColor="#A9A9A9"
-                    value={username}
-                    onChangeText={setUsername}
-                    autoCapitalize="none"
-                />
-                
-                {/* 3. PASSWORD INPUT */}
-                <TextInput
-                    style={styles.input}
-                    placeholder="Password"
-                    placeholderTextColor="#A9A9A9"
-                    secureTextEntry={true} 
-                    value={password}
-                    onChangeText={setPassword}
-                />
 
-                {/* (debug/test button removed) */}
-                
-                {/* 4. ACTION BUTTON is moved to bottom for better UX on small screens */}
-            </View>
-            {/* Bottom fixed small button */}
-            <View style={{ position: 'absolute', left: 0, right: 0, bottom: bottomPadding, alignItems: 'center', zIndex: 999, elevation: 20 }}>
-                <TouchableOpacity
-                    style={[
-                        styles.button,
-                        { width: buttonWidth, padding: buttonPadding, borderRadius: Math.round(buttonWidth / 2) },
-                        // make disabled state visually obvious
-                        (!isFormValid || isLoading) && { opacity: 0.6 },
-                    ]}
-                    onPress={handleLogin}
-                    disabled={isLoading}
-                    accessibilityRole="button"
-                >
-                    {isLoading ? (
-                        <ActivityIndicator color="#fff" />
-                    ) : (
-                        <Text style={styles.buttonText}>GO</Text>
-                    )}
-                </TouchableOpacity>
+            {/* Main Centered Content Wrapper with Card */}
+            <View style={[styles.contentWrapper, { padding: contentPadding, paddingBottom: bottomPadding + 24 }]}>
+                <View style={[styles.card, { padding: Math.max(20, contentPadding), marginTop: Math.round(topShapeHeight * 0.6) }]}>
+                    <Text style={styles.titleCard}>PHYSIQUE.IO</Text>
+
+                    <TextInput
+                        style={styles.inputCard}
+                        placeholder="Username"
+                        placeholderTextColor="#6B7280"
+                        value={username}
+                        onChangeText={setUsername}
+                        autoCapitalize="none"
+                        accessibilityLabel="username"
+                    />
+
+                    <View style={styles.passwordContainer}>
+                        <TextInput
+                            style={styles.inputCard}
+                            placeholder="Password"
+                            placeholderTextColor="#6B7280"
+                            secureTextEntry={!showPassword}
+                            value={password}
+                            onChangeText={setPassword}
+                            accessibilityLabel="password"
+                        />
+                        <TouchableOpacity
+                            onPress={() => setShowPassword(s => !s)}
+                            style={styles.passwordToggle}
+                            accessibilityRole="button"
+                        >
+                            <Text style={styles.passwordToggleText}>{showPassword ? 'Hide' : 'Show'}</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <TouchableOpacity
+                        style={[styles.primaryButton, { width: '100%', padding: buttonPadding }]}
+                        onPress={handleLogin}
+                        disabled={isLoading}
+                        accessibilityRole="button"
+                    >
+                        {isLoading ? (
+                            <ActivityIndicator color="#fff" />
+                        ) : (
+                            <Text style={styles.primaryButtonText}>GO</Text>
+                        )}
+                    </TouchableOpacity>
+                </View>
             </View>
         </View>
     );
@@ -241,6 +240,62 @@ const styles = StyleSheet.create({
         elevation: 8,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.22)',
+    },
+    // Card layout for modern login
+    card: {
+        width: '92%',
+        maxWidth: 420,
+        backgroundColor: '#ffffff',
+        borderRadius: 16,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.12,
+        shadowRadius: 12,
+        elevation: 10,
+    },
+    titleCard: {
+        fontSize: 28,
+        fontWeight: '700',
+        color: '#FF5733',
+        marginBottom: 14,
+    },
+    inputCard: {
+        width: '100%',
+        height: 48,
+        borderRadius: 10,
+        paddingHorizontal: 14,
+        marginBottom: 12,
+        backgroundColor: '#F8FAFC',
+        color: '#0F172A',
+    },
+    passwordContainer: {
+        width: '100%',
+        position: 'relative',
+        marginBottom: 12,
+    },
+    passwordToggle: {
+        position: 'absolute',
+        right: 12,
+        top: 10,
+        paddingHorizontal: 6,
+        paddingVertical: 4,
+    },
+    passwordToggleText: {
+        color: '#FF5733',
+        fontWeight: '600',
+    },
+    primaryButton: {
+        backgroundColor: '#FF5733',
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 8,
+    },
+    primaryButtonText: {
+        color: '#fff',
+        fontWeight: '700',
+        fontSize: 16,
     },
     
     // Input Styling (Light Grey BG, Black Text, Height 40, No Border)
