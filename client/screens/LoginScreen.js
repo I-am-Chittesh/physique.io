@@ -20,10 +20,19 @@ const LoginScreen = () => {
     const titleMargin = clamp(Math.round(height * 0.04), 12, 80);
     const inputHeight = clamp(Math.round(height * 0.055), 40, 64);
     const buttonPadding = clamp(Math.round(width * 0.035), 8, 28);
+    const buttonWidth = Math.min(320, Math.round(width * 0.5));
+    const bottomPadding = clamp(Math.round(height * 0.045), 12, 64);
 
     // Semi-circle sizing (height and radius) respond to height/width
-    const topShapeHeight = clamp(Math.round(height * 0.32), 120, Math.round(height * 0.45));
-    const topShapeRadius = clamp(Math.round(width * 0.5), 80, 600);
+    // Make the semicircle larger and responsive: height based on a portion of screen height
+    // and radius based on a portion of screen width. Reduce both by 20% per request.
+    const baseTopShapeHeight = Math.round(height * 0.38);
+    const reducedTopShapeHeight = Math.round(baseTopShapeHeight * 0.8); // reduce by 20%
+    const topShapeHeight = clamp(reducedTopShapeHeight, 140, Math.round(height * 0.6));
+
+    const baseTopShapeRadius = Math.round(width * 0.6);
+    const reducedTopShapeRadius = Math.round(baseTopShapeRadius * 0.8); // reduce by 20%
+    const topShapeRadius = clamp(reducedTopShapeRadius, topShapeHeight, Math.round(width * 0.9));
 
     // Icon sizing — proportional to width, allow large but clamp
     const iconBase = Math.round(width * 0.22);
@@ -63,7 +72,7 @@ const LoginScreen = () => {
             </View>
             
             {/* Main Centered Content Wrapper */}
-            <View style={[styles.contentWrapper, { padding: contentPadding }]}>
+            <View style={[styles.contentWrapper, { padding: contentPadding, paddingBottom: bottomPadding + 24 }]}>
                 
                 {/* 1. TITLE: Primary Orange, Bold, Fixed Size 50 */}
                 <Text style={[styles.title, { fontSize: 50, marginBottom: titleMargin }]}>Physique.io</Text>
@@ -88,9 +97,12 @@ const LoginScreen = () => {
                     onChangeText={setPassword}
                 />
                 
-                {/* 4. ACTION BUTTON: Orange BG, Text 'Go' */}
-                <TouchableOpacity 
-                    style={[styles.button, { padding: buttonPadding }]} 
+                {/* 4. ACTION BUTTON is moved to bottom for better UX on small screens */}
+            </View>
+            {/* Bottom fixed small button */}
+            <View style={{ position: 'absolute', left: 0, right: 0, bottom: bottomPadding, alignItems: 'center' }}>
+                <TouchableOpacity
+                    style={[styles.button, { width: buttonWidth, padding: buttonPadding, borderRadius: Math.round(buttonWidth / 2) }]}
                     onPress={handleLogin}
                     disabled={isLoading}
                 >
@@ -171,7 +183,6 @@ const styles = StyleSheet.create({
         backgroundColor: '#FF5733', // Primary Orange
         padding: 10, // Adjusted padding for smaller height
         borderRadius: 8,
-        width: '100%',
         alignItems: 'center',
         marginTop: 15,
     },
