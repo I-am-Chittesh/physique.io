@@ -44,13 +44,19 @@ const LoginScreen = () => {
     
     // --- TEMPORARY Placeholder Function for Day 4 ---
     const handleLogin = () => {
-        if (!username || !password) {
-            Alert.alert("Error", "Please enter both username and password.");
+        const trimmedUsername = username.trim();
+        const trimmedPassword = password.trim();
+
+        if (!trimmedUsername || !trimmedPassword) {
+            Alert.alert('Error', 'Please enter both username and password.');
             return;
         }
         // In the final app, API logic replaces this line:
         navigation.replace('Setup'); 
     };
+
+    // Form validation: both fields must contain non-whitespace characters
+    const isFormValid = username.trim().length > 0 && password.trim().length > 0;
 
     // ----------------------------------------------------
     // ➡️ UI RENDER (The components you see)
@@ -102,9 +108,14 @@ const LoginScreen = () => {
             {/* Bottom fixed small button */}
             <View style={{ position: 'absolute', left: 0, right: 0, bottom: bottomPadding, alignItems: 'center' }}>
                 <TouchableOpacity
-                    style={[styles.button, { width: buttonWidth, padding: buttonPadding, borderRadius: Math.round(buttonWidth / 2) }]}
+                    style={[
+                        styles.button,
+                        { width: buttonWidth, padding: buttonPadding, borderRadius: Math.round(buttonWidth / 2) },
+                        // make disabled state visually obvious
+                        (!isFormValid || isLoading) && { opacity: 0.6 },
+                    ]}
                     onPress={handleLogin}
-                    disabled={isLoading}
+                    disabled={!isFormValid || isLoading}
                 >
                     {isLoading ? (
                         <ActivityIndicator color="#fff" />
