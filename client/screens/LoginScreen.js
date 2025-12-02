@@ -1,0 +1,140 @@
+import React, { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+
+// --- CONFIG: You MUST update this URL for your phone to work ---
+const API_BASE_URL = 'http.//192.168.29.224:5000'; // <-- CHANGE THIS IP
+
+const LoginScreen = () => {
+    const navigation = useNavigation();
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    
+    // --- TEMPORARY Placeholder Function for Day 4 ---
+    const handleLogin = () => {
+        if (!username || !password) {
+            Alert.alert("Error", "Please enter both username and password.");
+            return;
+        }
+        // In the final app, API logic replaces this line:
+        navigation.replace('Setup'); 
+    };
+
+    // ----------------------------------------------------
+    // ➡️ UI RENDER (The components you see)
+    // ----------------------------------------------------
+    return (
+        <View style={styles.container}>
+            
+            {/* The 30% Contrast Blue Semi-Circle Shape */}
+            <View style={styles.topShape} /> 
+            
+            {/* Main Centered Content Wrapper */}
+            <View style={styles.contentWrapper}>
+                
+                {/* 1. TITLE: Primary Orange, Bold, Size 30 */}
+                <Text style={styles.title}>Physique.io</Text>
+                
+                {/* 2. USERNAME INPUT */}
+                <TextInput
+                    style={styles.input}
+                    placeholder="Username"
+                    placeholderTextColor="#A9A9A9"
+                    value={username}
+                    onChangeText={setUsername}
+                    autoCapitalize="none"
+                />
+                
+                {/* 3. PASSWORD INPUT */}
+                <TextInput
+                    style={styles.input}
+                    placeholder="Password"
+                    placeholderTextColor="#A9A9A9"
+                    secureTextEntry={true} 
+                    value={password}
+                    onChangeText={setPassword}
+                />
+                
+                {/* 4. ACTION BUTTON: Orange BG, Text 'Go' */}
+                <TouchableOpacity 
+                    style={styles.button} 
+                    onPress={handleLogin}
+                    disabled={isLoading}
+                >
+                    {isLoading ? (
+                        <ActivityIndicator color="#fff" />
+                    ) : (
+                        <Text style={styles.buttonText}>GO</Text>
+                    )}
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
+};
+
+// --- FINAL STYLING ---
+const styles = StyleSheet.create({
+    container: {
+        flex: 1, 
+        backgroundColor: '#1E293B', // Dark Slate Blue
+    },
+    
+    // The 30% Curved Top Shape
+    topShape: {
+        width: '100%',
+        height: '30%', 
+        backgroundColor: '#60A5FA', // Contrast Sky Blue
+        borderBottomLeftRadius: 150, 
+        borderBottomRightRadius: 150,
+        position: 'absolute',
+        top: 0,
+    },
+    
+    // Wrapper for Inputs/Buttons to center them
+    contentWrapper: {
+        flex: 1, 
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 40,
+        zIndex: 1,
+    },
+    
+    title: {
+        fontSize: 30,
+        fontWeight: 'bold',
+        marginBottom: 40,
+        color: '#FF5733', // Primary Orange
+    },
+    
+    // Input Styling (Light Grey BG, Black Text, Height 40, No Border)
+    input: {
+        width: '100%',
+        height: 40, // Height 40
+        borderColor: '#E0E0E0', // Light Grey Background
+        borderWidth: 0, // No Border/Outline
+        borderRadius: 8,
+        paddingHorizontal: 15,
+        marginBottom: 15,
+        backgroundColor: '#E0E0E0', 
+        color: '#000000', // Black Text Color
+        fontWeight: 'bold', // Montserrat Bold
+    },
+    
+    // Button Styling
+    button: {
+        backgroundColor: '#FF5733', // Primary Orange
+        padding: 10, // Adjusted padding for smaller height
+        borderRadius: 8,
+        width: '100%',
+        alignItems: 'center',
+        marginTop: 15,
+    },
+    buttonText: {
+        color: '#fff', // Bright White
+        fontWeight: 'bold', // Montserrat Bold
+        fontSize: 16, // Appropriate size
+    }
+});
+
+export default LoginScreen;
