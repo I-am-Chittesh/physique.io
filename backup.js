@@ -11,8 +11,6 @@ const LoginScreen = () => {
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
-    const [mode, setMode] = useState('login'); // 'login' | 'signup'
-    const [confirmPassword, setConfirmPassword] = useState('');
     const { width, height } = useWindowDimensions();
 
     // Form validation: both fields must contain non-whitespace characters
@@ -30,16 +28,17 @@ const LoginScreen = () => {
     const bottomPadding = clamp(Math.round(height * 0.045), 12, 64);
 
     // Semi-circle sizing (height and radius) respond to height/width
-    // Reduce the semicircle so it no longer overlaps the white card.
-    // Use smaller proportions and slightly larger clamping floor to keep it compact.
-    const baseTopShapeHeight = Math.round(height * 0.36 * 0.9); // smaller: 0.36 * 0.9 = 0.324
-    const reducedTopShapeHeight = Math.round(baseTopShapeHeight * 0.92);
-    const topShapeHeight = clamp(reducedTopShapeHeight, 110, Math.round(height * 0.55));
+    // Make the semicircle larger and responsive: height based on a portion of screen height
+    // and radius based on a portion of screen width. Reduce both by 20% per request.
+    // Make the semicircle slightly smaller by 10% from the previous size
+    const baseTopShapeHeight = Math.round(height * 0.48 * 0.9); // 0.48 * 0.9 = 0.432
+    const reducedTopShapeHeight = Math.round(baseTopShapeHeight * 0.95);
+    const topShapeHeight = clamp(reducedTopShapeHeight, 140, Math.round(height * 0.6));
 
-    // Reduce radius so semicircle looks tighter on narrow screens
-    const baseTopShapeRadius = Math.round(width * 0.7 * 0.9); // smaller radius
-    const reducedTopShapeRadius = Math.round(baseTopShapeRadius * 0.92);
-    const topShapeRadius = clamp(reducedTopShapeRadius, topShapeHeight, Math.round(width * 0.85));
+    // Reduce radius by 10% from previous wide size
+    const baseTopShapeRadius = Math.round(width * 0.85 * 0.9); // 0.85 * 0.9 = 0.765
+    const reducedTopShapeRadius = Math.round(baseTopShapeRadius * 0.95);
+    const topShapeRadius = clamp(reducedTopShapeRadius, topShapeHeight, Math.round(width * 0.9));
 
     // Icon sizing — proportional to width, allow large but clamp
     const iconBase = Math.round(width * 0.22);
@@ -49,91 +48,155 @@ const LoginScreen = () => {
         const iconTopPad = Math.max(0, iconCenteredTop);
         // const iconTopPad = Math.max(0, iconCenteredTop + iconExtra + 50); // Removed duplicate declaration
     
-
-// Navigation helper after authentication
-const navigateAfterAuth = (user) => {
-    if (user && user.plan_set) {
-        navigation.navigate('Dashboard');
+    // --- TEMPORARY Placeholder Function for Day 4 ---
+    // Function to handle automatic navigation after successful login/signup
+/* const navigateAfterAuth = (user) => {
+    // Check the 'plan_set' field returned by the backend (Day 3 logic)
+    if (user.plan_set) {
+        navigation.navigate('Dashboard'); // Plan exists, go straight to the app
     } else {
-        navigation.navigate('Setup');
+        navigation.navigate('Setup'); // New user/plan missing, redirect to setup wizard
+    }
+}; */
+
+// ➡️ SIGNUP LOGIC (Used if Login fails)
+/* const handleSignup = async () => {
+    // Use the existing username and password variables
+    try {
+        Alert.alert("Attempting Signup", "Creating a new account...");
+        let response = await fetch(`${API_BASE_URL}/auth/signup`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password }),
+        });
+
+        let data = await response.json();
+
+        if (response.ok) {
+            Alert.alert("Account Created!", "Time to build your plan.");
+            // After successful signup, user is new, so always navigate to Setup
+            navigation.navigate('Setup'); 
+        } else {
+             Alert.alert("Signup Failed", data.details || data.error || "An unknown error occurred.");
+        }
+    } catch (error) {
+        Alert.alert("Network Error", "Could not complete signup.");
     }
 };
 
-// Login handler: verifies credentials with server and navigates on success
+// ➡️ PRIMARY LOGIN ATTEMPT
 const handleLogin = async () => {
+    console.log('handleLogin invoked', { username, password });
+    // Validation check: Use the combined logic
     const trimmedUsername = username.trim();
     const trimmedPassword = password.trim();
 
     if (!trimmedUsername || !trimmedPassword) {
-        Alert.alert('Error', 'Please enter both username and password.');
+        Alert.alert("Error", "Please enter both username and password.");
         return;
     }
 
     setIsLoading(true);
+
     try {
-        const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        // First attempt: Try to log in
+        let response = await fetch(`${API_BASE_URL}/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username: trimmedUsername, password: trimmedPassword }),
         });
 
-        const data = await response.json();
+        let data = await response.json();
+
         if (response.ok) {
-            // Successful login -> go to dashboard
-            navigation.navigate('Dashboard');
+            // Login Success
+            navigateAfterAuth(data.user);
+            
+        } else if (response.status === 401 || response.status === 404) {
+             // If account not found (404) or credentials invalid (401), try signing up.
+             handleSignup();
         } else {
-            // Show user-friendly message for auth failures
-            if (response.status === 401 || response.status === 404) {
-                Alert.alert('Login Failed', 'Incorrect username or password.');
+            Alert.alert("Login Failed", data.error || "Could not connect to server.");
+        }
+
+    } catch (error) {
+        console.error("Network Error:", error);
+        Alert.alert("Network Error", "Check your IP and ensure the Node server is running.");
+    } finally {
+        setIsLoading(false);
+    }
+}; */
+const navigateAfterAuth = (user) => {
+        if (user.plan_set) {
+            navigation.replace('Dashboard'); // User has a plan -> Go to App
+        } else {
+            navigation.replace('Setup'); // New user -> Go to Setup Wizard
+        }
+    };
+
+    // Helper: Handles Signup if Login fails or if user wants to create account
+    const handleSignup = async () => {
+        try {
+            Alert.alert("New User Detected", "Creating a new account...");
+            let response = await fetch(`${API_BASE_URL}/auth/signup`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password }),
+            });
+
+            let data = await response.json();
+
+            if (response.ok) {
+                Alert.alert("Account Created!", "Time to build your plan.");
+                navigation.replace('Setup'); 
             } else {
-                Alert.alert('Login Failed', data.error || 'Could not connect to server.');
+                 Alert.alert("Signup Failed", data.details || data.error || "An unknown error occurred.");
             }
+        } catch (error) {
+            Alert.alert("Network Error", "Could not complete signup.");
         }
-    } catch (err) {
-        console.error('Login network error:', err);
-        Alert.alert('Network Error', 'Unable to reach the server.');
-    } finally {
-        setIsLoading(false);
-    }
-};
+    };
 
-// Signup handler: validates confirm password and creates account
-const handleSignup = async () => {
-    const trimmedUsername = username.trim();
-    const trimmedPassword = password.trim();
+    // Main Function connected to the "GO" Button
+    const handleLogin = async () => {
+        const trimmedUsername = username.trim();
+        const trimmedPassword = password.trim();
 
-    if (!trimmedUsername || !trimmedPassword) {
-        Alert.alert('Error', 'Please enter username and password.');
-        return;
-    }
-    if (trimmedPassword !== confirmPassword) {
-        Alert.alert('Error', 'Passwords do not match.');
-        return;
-    }
-
-    setIsLoading(true);
-    try {
-        const response = await fetch(`${API_BASE_URL}/auth/signup`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: trimmedUsername, password: trimmedPassword }),
-        });
-        const data = await response.json();
-        if (response.ok) {
-            // Account created -> go to setup wizard
-            navigation.navigate('Setup');
-        } else if (response.status === 409) {
-            Alert.alert('Signup Failed', data.error || 'Username already exists.');
-        } else {
-            Alert.alert('Signup Failed', data.error || 'Could not create account.');
+        if (!trimmedUsername || !trimmedPassword) {
+            Alert.alert("Error", "Please enter both username and password.");
+            return;
         }
-    } catch (err) {
-        console.error('Signup network error:', err);
-        Alert.alert('Network Error', 'Unable to reach the server.');
-    } finally {
-        setIsLoading(false);
-    }
-};
+
+        setIsLoading(true);
+
+        try {
+            // Step 1: Try to Log In
+            let response = await fetch(`${API_BASE_URL}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: trimmedUsername, password: trimmedPassword }),
+            });
+
+            let data = await response.json();
+
+            if (response.ok) {
+                // Success: Navigate based on user status
+                navigateAfterAuth(data.user);
+                
+            } else if (response.status === 401 || response.status === 404) {
+                 // Failed: User not found or wrong password? Try Signup flow.
+                 handleSignup();
+            } else {
+                Alert.alert("Login Failed", data.error || "Could not connect to server.");
+            }
+
+        } catch (error) {
+            console.error("Network Error:", error);
+            Alert.alert("Network Error", "Check your IP and ensure the Node server is running.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
     // ----------------------------------------------------
     // ➡️ UI RENDER (The components you see)
     // ----------------------------------------------------
@@ -153,24 +216,8 @@ const handleSignup = async () => {
 
             {/* Main Centered Content Wrapper with Card */}
             <View style={[styles.contentWrapper, { padding: contentPadding, paddingBottom: bottomPadding + 24 }]}>
-                <View style={[styles.card, { padding: Math.max(20, contentPadding), marginTop: Math.round(topShapeHeight * 0.75) }]}>
+                <View style={[styles.card, { padding: Math.max(20, contentPadding), marginTop: Math.round(topShapeHeight * 0.6) }]}>
                     <Text style={styles.titleCard}>PHYSIQUE.IO</Text>
-
-                    {/* Mode tabs: Login / Sign Up */}
-                    <View style={styles.tabContainer}>
-                        <TouchableOpacity
-                            style={[styles.tabButton, mode === 'login' && styles.tabButtonActive]}
-                            onPress={() => { setMode('login'); setIsLoading(false); }}
-                        >
-                            <Text style={[styles.tabButtonText, mode === 'login' && styles.tabButtonTextActive]}>Login</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[styles.tabButton, mode === 'signup' && styles.tabButtonActive]}
-                            onPress={() => { setMode('signup'); setIsLoading(false); setConfirmPassword(''); }}
-                        >
-                            <Text style={[styles.tabButtonText, mode === 'signup' && styles.tabButtonTextActive]}>Sign Up</Text>
-                        </TouchableOpacity>
-                    </View>
 
                     <TextInput
                         style={styles.inputCard}
@@ -201,21 +248,9 @@ const handleSignup = async () => {
                         </TouchableOpacity>
                     </View>
 
-                    {mode === 'signup' && (
-                        <TextInput
-                            style={styles.inputCard}
-                            placeholder="Confirm Password"
-                            placeholderTextColor="#6B7280"
-                            secureTextEntry={!showPassword}
-                            value={confirmPassword}
-                            onChangeText={setConfirmPassword}
-                            accessibilityLabel="confirm-password"
-                        />
-                    )}
-
                     <TouchableOpacity
                         style={[styles.primaryButton, { width: '100%', padding: buttonPadding }]}
-                        onPress={mode === 'login' ? handleLogin : handleSignup}
+                        onPress={handleLogin}
                         disabled={isLoading}
                         accessibilityRole="button"
                     >
@@ -362,32 +397,6 @@ const styles = StyleSheet.create({
         fontWeight: 'bold', // Montserrat Bold
         fontSize: 16, // Appropriate size
     }
-    ,
-    tabContainer: {
-        flexDirection: 'row',
-        width: '100%',
-        marginBottom: 10,
-        backgroundColor: 'transparent',
-        justifyContent: 'space-between',
-    },
-    tabButton: {
-        flex: 1,
-        paddingVertical: 8,
-        borderRadius: 10,
-        alignItems: 'center',
-        marginHorizontal: 4,
-        backgroundColor: 'transparent',
-    },
-    tabButtonActive: {
-        backgroundColor: '#FFEDD5',
-    },
-    tabButtonText: {
-        color: '#334155',
-        fontWeight: '600',
-    },
-    tabButtonTextActive: {
-        color: '#FF5733',
-    },
 });
 
 export default LoginScreen;
