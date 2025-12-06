@@ -398,5 +398,3 @@ const styles = StyleSheet.create({
         fontSize: 16, // Appropriate size
     }
 });
-
-export default LoginScreen;
