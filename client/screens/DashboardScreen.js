@@ -4,7 +4,7 @@ import React from 'react';
 const DashboardScreen = () => { // <--- RENAME THIS (e.g., DashboardScreen)
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>--- DashboardScreen ---</Text>
+            <Text style={styles.title}>--- VijayKiran ---</Text>
         </View>
     );
 };

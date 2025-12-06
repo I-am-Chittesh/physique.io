@@ -50,90 +50,92 @@ const LoginScreen = () => {
         // const iconTopPad = Math.max(0, iconCenteredTop + iconExtra + 50); // Removed duplicate declaration
     
 
-// Navigation helper after authentication
-const navigateAfterAuth = (user) => {
-    if (user && user.plan_set) {
-        navigation.navigate('Dashboard');
-    } else {
-        navigation.navigate('Setup');
-    }
-};
-
-// Login handler: verifies credentials with server and navigates on success
-const handleLogin = async () => {
-    const trimmedUsername = username.trim();
-    const trimmedPassword = password.trim();
-
-    if (!trimmedUsername || !trimmedPassword) {
-        Alert.alert('Error', 'Please enter both username and password.');
-        return;
-    }
-
-    setIsLoading(true);
-    try {
-        const response = await fetch(`${API_BASE_URL}/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: trimmedUsername, password: trimmedPassword }),
-        });
-
-        const data = await response.json();
-        if (response.ok) {
-            // Successful login -> go to dashboard
-            navigation.navigate('Dashboard');
+// 1. UPDATE: Helper to navigate based on plan status
+    const navigateAfterAuth = (user) => {
+        if (user && user.plan_set) {
+            // User has a plan -> Go to Dashboard
+            navigation.replace('Dashboard');
         } else {
-            // Show user-friendly message for auth failures
-            if (response.status === 401 || response.status === 404) {
-                Alert.alert('Login Failed', 'Incorrect username or password.');
+            // FIX: Pass the userId so SetupWizard knows who to save
+            navigation.replace('Setup', { userId: user.id });
+        }
+    };
+
+    // 2. UPDATE: Login handler
+    const handleLogin = async () => {
+        const trimmedUsername = username.trim();
+        const trimmedPassword = password.trim();
+
+        if (!trimmedUsername || !trimmedPassword) {
+            Alert.alert('Error', 'Please enter both username and password.');
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: trimmedUsername, password: trimmedPassword }),
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                // SUCCESS: Pass the full user object to the helper
+                navigateAfterAuth(data.user);
             } else {
-                Alert.alert('Login Failed', data.error || 'Could not connect to server.');
+                if (response.status === 401 || response.status === 404) {
+                    Alert.alert('Login Failed', 'Incorrect username or password.');
+                } else {
+                    Alert.alert('Login Failed', data.error || 'Could not connect to server.');
+                }
             }
+        } catch (err) {
+            console.error('Login network error:', err);
+            Alert.alert('Network Error', 'Unable to reach the server.');
+        } finally {
+            setIsLoading(false);
         }
-    } catch (err) {
-        console.error('Login network error:', err);
-        Alert.alert('Network Error', 'Unable to reach the server.');
-    } finally {
-        setIsLoading(false);
-    }
-};
+    };
 
-// Signup handler: validates confirm password and creates account
-const handleSignup = async () => {
-    const trimmedUsername = username.trim();
-    const trimmedPassword = password.trim();
+    // 3. UPDATE: Signup handler
+    const handleSignup = async () => {
+        const trimmedUsername = username.trim();
+        const trimmedPassword = password.trim();
 
-    if (!trimmedUsername || !trimmedPassword) {
-        Alert.alert('Error', 'Please enter username and password.');
-        return;
-    }
-    if (trimmedPassword !== confirmPassword) {
-        Alert.alert('Error', 'Passwords do not match.');
-        return;
-    }
-
-    setIsLoading(true);
-    try {
-        const response = await fetch(`${API_BASE_URL}/auth/signup`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: trimmedUsername, password: trimmedPassword }),
-        });
-        const data = await response.json();
-        if (response.ok) {
-            // Account created -> go to setup wizard
-            navigation.navigate('Setup');
-        } else if (response.status === 409) {
-            Alert.alert('Signup Failed', data.error || 'Username already exists.');
-        } else {
-            Alert.alert('Signup Failed', data.error || 'Could not create account.');
+        if (!trimmedUsername || !trimmedPassword) {
+            Alert.alert('Error', 'Please enter username and password.');
+            return;
         }
-    } catch (err) {
-        console.error('Signup network error:', err);
-        Alert.alert('Network Error', 'Unable to reach the server.');
-    } finally {
-        setIsLoading(false);
-    }
-};
+        if (trimmedPassword !== confirmPassword) {
+            Alert.alert('Error', 'Passwords do not match.');
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            const response = await fetch(`${API_BASE_URL}/auth/signup`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: trimmedUsername, password: trimmedPassword }),
+            });
+            const data = await response.json();
+            
+            if (response.ok) {
+                // FIX: Pass the new userId to Setup immediately
+                navigation.replace('Setup', { userId: data.user.id });
+            } else if (response.status === 409) {
+                Alert.alert('Signup Failed', data.error || 'Username already exists.');
+            } else {
+                Alert.alert('Signup Failed', data.error || 'Could not create account.');
+            }
+        } catch (err) {
+            console.error('Signup network error:', err);
+            Alert.alert('Network Error', 'Unable to reach the server.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
     // ----------------------------------------------------
     // ➡️ UI RENDER (The components you see)
     // ----------------------------------------------------
