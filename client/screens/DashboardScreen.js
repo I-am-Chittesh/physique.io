@@ -31,6 +31,7 @@ const DashboardScreen = () => {
 
             if (response.ok) {
                 setUserData(data);
+                console.log('Dashboard data received:', JSON.stringify(data, null, 2));
             } else {
                 const errorMsg = data?.message || "Could not load dashboard data.";
                 setError(errorMsg);
@@ -162,8 +163,8 @@ const DashboardScreen = () => {
                 </View>
                 <View style={styles.missionContent}>
                     <Text style={styles.cardHeader}>Diet Mission</Text>
-                    <Text style={styles.cardContent} numberOfLines={2}>
-                        {userData.today_plan_diet}
+                    <Text style={styles.cardContent} numberOfLines={3}>
+                        {userData.today_plan_diet || 'No diet plan set for today'}
                     </Text>
                 </View>
                 <Text style={styles.arrowIcon}>›</Text>
@@ -175,8 +176,8 @@ const DashboardScreen = () => {
                 </View>
                 <View style={styles.missionContent}>
                     <Text style={styles.cardHeader}>Workout Mission</Text>
-                    <Text style={styles.cardContent} numberOfLines={2}>
-                        {userData.today_plan_workout}
+                    <Text style={styles.cardContent} numberOfLines={3}>
+                        {userData.today_plan_workout || 'Rest day - No workout planned'}
                     </Text>
                 </View>
                 <Text style={styles.arrowIcon}>›</Text>
@@ -186,15 +187,14 @@ const DashboardScreen = () => {
             <View style={styles.actionRow}>
                 <TouchableOpacity 
                     style={styles.logButton} 
-                    onPress={() => navigation.navigate('Logger')}
-                    activeOpacity={0.8}
-                >
+                    onPress={() => navigation.navigate('Logger', { userId: userId })} // Pass the ID!
+>
                     <Text style={styles.buttonIcon}>📝</Text>
                     <Text style={styles.buttonText}>Log Activity</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
                     style={styles.statsButton} 
-                    onPress={() => navigation.navigate('Profile')}
+                    onPress={() => navigation.navigate('Profile', { userId })}
                     activeOpacity={0.8}
                 >
                     <Text style={styles.buttonIcon}>📈</Text>

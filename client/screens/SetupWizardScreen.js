@@ -108,7 +108,7 @@ const SetupWizardScreen = () => {
 
             if (response.ok) {
                 Alert.alert("Success!", "Your Master Plan is ready.");
-                navigation.replace('Dashboard'); 
+                navigation.replace('Dashboard', { userId: userId }); 
             } else {
                  Alert.alert("Save Failed", data.error || "Could not save plan.");
                  console.error("Backend Error:", data);

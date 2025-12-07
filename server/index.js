@@ -1,4 +1,6 @@
 const express = require('express');
+const logRouter = require('./log');
+const statsRouter = require('./stats');
 const cors = require('cors');
 const pool = require('./db');
 const authRouter = require('./auth');
@@ -16,7 +18,8 @@ app.use(express.json());
 // Mount Routers
 app.use('/auth', authRouter);
 app.use('/user', planRouter); // ⬅️ NEW: Server knows about /user/setup-plan
-
+app.use('/log', logRouter);
+app.use('/stats', statsRouter);
 // Test Route: Check if server is alive
 app.get('/', (req, res) => {
     res.send("Physique.io Brain is Active! 🧠");

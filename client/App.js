@@ -1,9 +1,12 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-// These imports link to the files you created in the 'screens' folder
+
+// 1. IMPORT ALL SCREENS
 import LoginScreen from './screens/LoginScreen';
 import SetupWizardScreen from './screens/SetupWizardScreen';
 import DashboardScreen from './screens/DashboardScreen'; 
+import LoggerScreen from './screens/LoggerScreen'; 
+import ProfileScreen from './screens/ProfileScreen'; // <--- NEW IMPORT
 
 const Stack = createNativeStackNavigator();
 const INITIAL_ROUTE_NAME = 'Login'; 
@@ -13,24 +16,38 @@ export default function App() {
     <NavigationContainer>
       <Stack.Navigator initialRouteName={INITIAL_ROUTE_NAME}>
         
-        {/* The first screen the user sees */}
+        {/* Authentication */}
         <Stack.Screen 
           name="Login" 
           component={LoginScreen} 
           options={{ headerShown: false }} 
         />
 
-        {/* The Setup Wizard (Our Onboarding) */}
+        {/* Onboarding */}
         <Stack.Screen 
           name="Setup" 
           component={SetupWizardScreen} 
           options={{ title: 'Build Your Plan' }}
         />
 
-        {/* The Main App View */}
+        {/* Core App */}
         <Stack.Screen 
           name="Dashboard" 
           component={DashboardScreen}
+          options={{ headerLeft: () => null }} // Hide back button on Dashboard
+        />
+
+        <Stack.Screen 
+          name="Logger" 
+          component={LoggerScreen} 
+          options={{ title: 'Log Activity' }} 
+        />
+
+        {/* 2. REGISTER THE NEW PROFILE ROUTE */}
+        <Stack.Screen 
+          name="Profile" 
+          component={ProfileScreen} 
+          options={{ title: 'My Stats' }} 
         />
 
       </Stack.Navigator>
