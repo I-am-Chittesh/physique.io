@@ -9,9 +9,9 @@ import {
   ActivityIndicator,
   ScrollView,
   KeyboardAvoidingView,
-  Platform,
-  LinearGradient
+  Platform
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../supabase';
 
 export default function SetupScreen({ onProfileSaved, onGoBack }) {
@@ -72,14 +72,26 @@ export default function SetupScreen({ onProfileSaved, onGoBack }) {
 
   // Helper component for Goal Cards
   const GoalCard = ({ title, mode }) => (
-    <TouchableOpacity 
-      style={[styles.goalCard, goal === mode && styles.activeGoalCard]} 
-      onPress={() => setGoal(mode)}
+    <LinearGradient
+      colors={
+        goal === mode
+          ? ['rgba(255, 140, 0, 0.25)', 'rgba(255, 140, 0, 0.08)']
+          : ['rgba(255, 140, 0, 0.04)', 'rgba(255, 140, 0, 0.01)']
+      }
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.goalCardGradient}
     >
-      <Text style={[styles.goalText, goal === mode && styles.activeGoalText]}>
-        {title}
-      </Text>
-    </TouchableOpacity>
+      <TouchableOpacity 
+        style={[styles.goalCard, goal === mode && styles.activeGoalCard]} 
+        onPress={() => setGoal(mode)}
+      >
+        <Text style={[styles.goalText, goal === mode && styles.activeGoalText]}>
+          {title}
+        </Text>
+        {goal === mode && <Text style={styles.goalCheckmark}>✓</Text>}
+      </TouchableOpacity>
+    </LinearGradient>
   );
 
   return (
@@ -87,7 +99,7 @@ export default function SetupScreen({ onProfileSaved, onGoBack }) {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
         {/* BACK BUTTON */}
         <TouchableOpacity 
@@ -100,7 +112,14 @@ export default function SetupScreen({ onProfileSaved, onGoBack }) {
                 { text: "Cancel", onPress: () => {}, style: "cancel" },
                 {
                   text: "Log Out",
-                  onPress: () => onGoBack?.(),
+                  onPress: async () => {
+                    try {
+                      await supabase.auth.signOut();
+                      onGoBack?.();
+                    } catch (error) {
+                      Alert.alert("Logout Error", error.message);
+                    }
+                  },
                   style: "destructive"
                 }
               ]
@@ -121,54 +140,82 @@ export default function SetupScreen({ onProfileSaved, onGoBack }) {
           
           {/* Row 1: Age & Height */}
           <View style={styles.row}>
-            <View style={styles.halfInput}>
-              <Text style={styles.label}>Age</Text>
-              <TextInput 
-                style={styles.input} 
-                keyboardType="numeric" 
-                placeholder="21" 
-                placeholderTextColor="#667085"
-                value={age}
-                onChangeText={setAge}
-              />
-            </View>
-            <View style={styles.halfInput}>
-              <Text style={styles.label}>Height (cm)</Text>
-              <TextInput 
-                style={styles.input} 
-                keyboardType="numeric" 
-                placeholder="175" 
-                placeholderTextColor="#667085"
-                value={height}
-                onChangeText={setHeight}
-              />
-            </View>
+            <LinearGradient
+              colors={['rgba(255, 140, 0, 0.08)', 'rgba(255, 140, 0, 0.02)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[styles.halfInput, styles.inputGradient]}
+            >
+              <View style={styles.inputWrapper}>
+                <Text style={styles.label}>Age</Text>
+                <TextInput 
+                  style={styles.input} 
+                  keyboardType="numeric" 
+                  placeholder="21" 
+                  placeholderTextColor="#667085"
+                  value={age}
+                  onChangeText={setAge}
+                />
+              </View>
+            </LinearGradient>
+            <LinearGradient
+              colors={['rgba(255, 140, 0, 0.08)', 'rgba(255, 140, 0, 0.02)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[styles.halfInput, styles.inputGradient]}
+            >
+              <View style={styles.inputWrapper}>
+                <Text style={styles.label}>Height (cm)</Text>
+                <TextInput 
+                  style={styles.input} 
+                  keyboardType="numeric" 
+                  placeholder="175" 
+                  placeholderTextColor="#667085"
+                  value={height}
+                  onChangeText={setHeight}
+                />
+              </View>
+            </LinearGradient>
           </View>
 
           {/* Row 2: Weights */}
           <View style={styles.row}>
-            <View style={styles.halfInput}>
-              <Text style={styles.label}>Current Weight (kg)</Text>
-              <TextInput 
-                style={styles.input} 
-                keyboardType="numeric" 
-                placeholder="70" 
-                placeholderTextColor="#667085"
-                value={currentWeight}
-                onChangeText={setCurrentWeight}
-              />
-            </View>
-            <View style={styles.halfInput}>
-              <Text style={styles.label}>Target Weight (kg)</Text>
-              <TextInput 
-                style={styles.input} 
-                keyboardType="numeric" 
-                placeholder="75" 
-                placeholderTextColor="#667085"
-                value={targetWeight}
-                onChangeText={setTargetWeight}
-              />
-            </View>
+            <LinearGradient
+              colors={['rgba(255, 140, 0, 0.08)', 'rgba(255, 140, 0, 0.02)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[styles.halfInput, styles.inputGradient]}
+            >
+              <View style={styles.inputWrapper}>
+                <Text style={styles.label}>Current Weight (kg)</Text>
+                <TextInput 
+                  style={styles.input} 
+                  keyboardType="numeric" 
+                  placeholder="70" 
+                  placeholderTextColor="#667085"
+                  value={currentWeight}
+                  onChangeText={setCurrentWeight}
+                />
+              </View>
+            </LinearGradient>
+            <LinearGradient
+              colors={['rgba(255, 140, 0, 0.08)', 'rgba(255, 140, 0, 0.02)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[styles.halfInput, styles.inputGradient]}
+            >
+              <View style={styles.inputWrapper}>
+                <Text style={styles.label}>Target Weight (kg)</Text>
+                <TextInput 
+                  style={styles.input} 
+                  keyboardType="numeric" 
+                  placeholder="75" 
+                  placeholderTextColor="#667085"
+                  value={targetWeight}
+                  onChangeText={setTargetWeight}
+                />
+              </View>
+            </LinearGradient>
           </View>
 
           {/* Section: Goal Mode */}
@@ -181,27 +228,47 @@ export default function SetupScreen({ onProfileSaved, onGoBack }) {
 
           {/* Section: Meal Frequency */}
           <Text style={styles.sectionTitle}>Meals per day?</Text>
-          <TextInput 
-            style={styles.input} 
-            keyboardType="numeric" 
-            placeholder="e.g. 3 or 4" 
-            placeholderTextColor="#667085"
-            value={mealsPerDay}
-            onChangeText={setMealsPerDay}
-          />
+          <LinearGradient
+            colors={['rgba(255, 140, 0, 0.08)', 'rgba(255, 140, 0, 0.02)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.inputGradient}
+          >
+            <View style={styles.inputWrapper}>
+              <TextInput 
+                style={styles.input} 
+                keyboardType="numeric" 
+                placeholder="e.g. 3 or 4" 
+                placeholderTextColor="#667085"
+                value={mealsPerDay}
+                onChangeText={setMealsPerDay}
+              />
+            </View>
+          </LinearGradient>
 
           {/* SAVE BUTTON */}
-          <TouchableOpacity 
-            style={styles.saveButton} 
-            onPress={handleSaveProfile}
-            disabled={loading}
+          <LinearGradient
+            colors={['#FF8C00', '#FF6B00']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.saveButtonGradient}
           >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.saveButtonText}>SAVE & CONTINUE</Text>
-            )}
-          </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.saveButton, loading && styles.saveButtonDisabled]}
+              onPress={handleSaveProfile}
+              disabled={loading}
+              activeOpacity={0.85}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <Text style={styles.saveButtonText}>SAVE & CONTINUE</Text>
+                  <Text style={styles.saveButtonArrow}>→</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </LinearGradient>
 
         </View>
       </ScrollView>
@@ -212,113 +279,156 @@ export default function SetupScreen({ onProfileSaved, onGoBack }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A192F', // Deep Navy
+    backgroundColor: '#0A1628',
   },
   scrollContent: {
     padding: 24,
+    paddingBottom: 50,
     paddingTop: 20,
   },
   backButton: {
     alignSelf: 'flex-start',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    marginBottom: 16,
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    marginBottom: 24,
     borderRadius: 10,
-    backgroundColor: 'rgba(136, 146, 176, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderWidth: 1,
-    borderColor: 'rgba(136, 146, 176, 0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   backButtonText: {
-    color: '#8892b0',
-    fontWeight: '600',
-    fontSize: 14,
+    color: '#FF8C00',
+    fontWeight: '700',
+    fontSize: 13,
   },
   header: {
-    marginBottom: 30,
+    marginBottom: 40,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 38,
+    fontWeight: '900',
     color: '#fff',
-    marginBottom: 8,
+    marginBottom: 10,
+    letterSpacing: -1,
   },
   subtitle: {
     fontSize: 16,
-    color: '#8892b0',
+    color: '#a8b5c9',
+    fontWeight: '500',
+    lineHeight: 24,
   },
   form: {
-    gap: 20,
+    gap: 22,
   },
   row: {
     flexDirection: 'row',
-    gap: 15,
+    gap: 14,
   },
   halfInput: {
     flex: 1,
   },
+  inputGradient: {
+    borderRadius: 14,
+    padding: 0,
+  },
+  inputWrapper: {
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+  },
   label: {
     color: '#ccd6f6',
-    marginBottom: 8,
-    fontWeight: '600',
+    marginBottom: 6,
+    fontWeight: '700',
+    fontSize: 13,
+    letterSpacing: 0.3,
   },
   input: {
-    backgroundColor: '#112240',
     color: '#fff',
-    padding: 16,
-    borderRadius: 12,
+    padding: 9,
+    borderRadius: 10,
     fontSize: 16,
+    fontWeight: '600',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,
-    borderColor: '#233554',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 15,
+    fontWeight: '800',
     color: '#fff',
-    marginTop: 10,
-    marginBottom: 10,
+    marginTop: 6,
+    marginBottom: 8,
+    letterSpacing: 0.5,
   },
   goalContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 10,
+    gap: 12,
+  },
+  goalCardGradient: {
+    borderRadius: 14,
+    padding: 0,
+    flex: 1,
   },
   goalCard: {
-    flex: 1,
-    backgroundColor: '#112240',
-    paddingVertical: 15,
-    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    paddingVertical: 16,
+    borderRadius: 14,
     alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#233554',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    minHeight: 72,
   },
   activeGoalCard: {
-    backgroundColor: 'rgba(255, 140, 0, 0.2)', // Orange tint
-    borderColor: '#FF8C00',
+    backgroundColor: 'rgba(255, 140, 0, 0.12)',
+    borderColor: 'rgba(255, 140, 0, 0.4)',
   },
   goalText: {
     color: '#8892b0',
-    fontWeight: 'bold',
+    fontWeight: '800',
     fontSize: 12,
+    letterSpacing: 0.8,
   },
   activeGoalText: {
-    color: '#FF8C00', // Orange Text
+    color: '#FF8C00',
+  },
+  goalCheckmark: {
+    color: '#FF8C00',
+    fontSize: 16,
+    fontWeight: '900',
+    marginTop: 5,
+  },
+  saveButtonGradient: {
+    borderRadius: 14,
+    marginTop: 20,
+    overflow: 'hidden',
   },
   saveButton: {
-    backgroundColor: '#FF8C00', // Solid Orange
-    paddingVertical: 18,
-    borderRadius: 15,
+    flexDirection: 'row',
+    paddingVertical: 16,
+    paddingHorizontal: 28,
+    borderRadius: 14,
     alignItems: 'center',
-    marginTop: 20,
-    shadowColor: '#FF8C00',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 5,
+    justifyContent: 'center',
+    gap: 10,
+  },
+  saveButtonDisabled: {
+    opacity: 0.7,
   },
   saveButtonText: {
     color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-    letterSpacing: 1,
+    fontWeight: '900',
+    fontSize: 15,
+    letterSpacing: 0.8,
+  },
+  saveButtonArrow: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '900',
   },
 });

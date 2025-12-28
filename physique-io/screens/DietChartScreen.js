@@ -206,21 +206,28 @@ export default function DietChartScreen({ onDietSaved, onGoBack }) {
             </View>
           </LinearGradient>
 
-          <TouchableOpacity 
-            style={[styles.saveButton, saving && styles.saveButtonDisabled]}
-            onPress={handleSaveTargets}
-            disabled={saving}
-            activeOpacity={0.85}
+          <LinearGradient
+            colors={['#FF8C00', '#FF6B00']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.saveButtonGradient}
           >
-            {saving ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <>
-                <Text style={styles.saveButtonText}>FINALIZE PLAN</Text>
-                <Text style={styles.saveButtonArrow}>→</Text>
-              </>
-            )}
-          </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+              onPress={handleSaveTargets}
+              disabled={saving}
+              activeOpacity={0.85}
+            >
+              {saving ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <Text style={styles.saveButtonText}>FINALIZE PLAN</Text>
+                  <Text style={styles.saveButtonArrow}>→</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </LinearGradient>
         </View>
 
       </ScrollView>
@@ -231,51 +238,46 @@ export default function DietChartScreen({ onDietSaved, onGoBack }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A192F',
+    backgroundColor: '#0A1628',
   },
   center: {
     flex: 1,
-    backgroundColor: '#0A192F',
+    backgroundColor: '#0A1628',
     justifyContent: 'center',
     alignItems: 'center',
   },
   scrollContent: {
-    padding: 20,
-    paddingBottom: 40,
+    padding: 24,
+    paddingBottom: 50,
     paddingTop: 20,
   },
   backButton: {
     alignSelf: 'flex-start',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    marginBottom: 16,
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    marginBottom: 24,
     borderRadius: 10,
-    backgroundColor: 'rgba(136, 146, 176, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderWidth: 1,
-    borderColor: 'rgba(136, 146, 176, 0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   backButtonText: {
-    color: '#8892b0',
-    fontWeight: '600',
-    fontSize: 14,
+    color: '#FF8C00',
+    fontWeight: '700',
+    fontSize: 13,
   },
   
   /* PROGRESS SECTION */
   progressSection: {
-    marginBottom: 32,
-    marginTop: 20,
+    marginBottom: 28,
+    marginTop: 12,
   },
   progressBar: {
-    height: 6,
-    backgroundColor: 'rgba(136, 146, 176, 0.15)',
+    height: 5,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: 3,
     overflow: 'hidden',
-    marginBottom: 10,
-    shadowColor: '#FF8C00',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    marginBottom: 8,
   },
   progressFill: {
     height: '100%',
@@ -283,10 +285,10 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   progressText: {
-    fontSize: 13,
-    color: '#8892b0',
+    fontSize: 12,
+    color: '#a8b5c9',
     fontWeight: '600',
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
 
   /* HEADER */
@@ -294,51 +296,45 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   title: {
-    fontSize: 32,
-    fontWeight: '800',
+    fontSize: 38,
+    fontWeight: '900',
     color: '#fff',
     marginBottom: 8,
     letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 16,
-    color: '#8892b0',
+    color: '#a8b5c9',
     fontWeight: '500',
     lineHeight: 24,
   },
 
   /* MEAL LIST */
   list: {
-    gap: 16,
+    gap: 14,
     marginBottom: 28,
   },
   cardGradient: {
-    borderRadius: 16,
-    padding: 1,
-    shadowColor: '#FF8C00',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 6,
+    borderRadius: 14,
+    padding: 0,
   },
   card: {
-    backgroundColor: 'rgba(17, 34, 64, 0.6)',
-    borderRadius: 16,
-    padding: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: 14,
+    padding: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255, 140, 0, 0.2)',
-    backdropFilter: 'blur(20px)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginBottom: 14,
+    gap: 10,
+    marginBottom: 10,
   },
   mealNumberBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     backgroundColor: 'rgba(255, 140, 0, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -348,140 +344,125 @@ const styles = StyleSheet.create({
   mealNumber: {
     color: '#FF8C00',
     fontWeight: '800',
-    fontSize: 18,
+    fontSize: 16,
   },
   mealLabel: {
     color: '#ccd6f6',
     fontWeight: '700',
-    fontSize: 16,
+    fontSize: 15,
     flex: 1,
   },
   caloriesBadge: {
-    backgroundColor: 'rgba(136, 146, 176, 0.1)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 7,
     borderWidth: 1,
-    borderColor: 'rgba(136, 146, 176, 0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   calLabel: {
-    color: '#667085',
-    fontSize: 11,
+    color: '#a8b5c9',
+    fontSize: 10,
     fontWeight: '700',
-    letterSpacing: 1,
+    letterSpacing: 0.6,
   },
   inputContainer: {
     position: 'relative',
-    borderRadius: 12,
+    borderRadius: 10,
   },
   input: {
-    backgroundColor: 'rgba(10, 25, 47, 0.8)',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     color: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    fontSize: 20,
+    padding: 13,
+    borderRadius: 10,
+    fontSize: 18,
     fontWeight: 'bold',
     textAlign: 'center',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 140, 0, 0.2)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   inputDeco: {
     position: 'absolute',
-    right: 16,
+    right: 12,
     top: '50%',
-    marginTop: -12,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 140, 0, 0.3)',
+    marginTop: -10,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 140, 0, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   inputDecoText: {
     color: '#FF8C00',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: 'bold',
   },
 
   /* FOOTER */
   footerSection: {
-    gap: 16,
+    gap: 14,
   },
   totalCardGradient: {
-    borderRadius: 16,
-    padding: 1,
-    shadowColor: '#FF8C00',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
+    borderRadius: 14,
+    padding: 0,
   },
   totalCard: {
-    backgroundColor: 'rgba(17, 34, 64, 0.7)',
-    borderRadius: 16,
-    padding: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: 14,
+    padding: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255, 140, 0, 0.25)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
     alignItems: 'center',
-    backdropFilter: 'blur(20px)',
   },
   totalLabel: {
-    color: '#8892b0',
-    fontSize: 13,
+    color: '#a8b5c9',
+    fontSize: 12,
     fontWeight: '700',
-    letterSpacing: 1.5,
-    marginBottom: 10,
+    letterSpacing: 1,
+    marginBottom: 8,
   },
   totalValueContainer: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    gap: 8,
+    gap: 6,
   },
   totalValue: {
     color: '#FF8C00',
-    fontSize: 44,
+    fontSize: 40,
     fontWeight: '900',
     letterSpacing: -1,
   },
   totalUnit: {
-    color: '#8892b0',
-    fontSize: 16,
+    color: '#a8b5c9',
+    fontSize: 15,
     fontWeight: '700',
+  },
+  saveButtonGradient: {
+    borderRadius: 14,
+    marginTop: 24,
+    overflow: 'hidden',
   },
   saveButton: {
     flexDirection: 'row',
-    backgroundColor: '#FF8C00',
-    paddingVertical: 18,
-    paddingHorizontal: 24,
-    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
-    shadowColor: '#FF8C00',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.4,
-    shadowRadius: 20,
-    elevation: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    gap: 10,
   },
   saveButtonDisabled: {
-    opacity: 0.7,
+    opacity: 0.6,
   },
   saveButtonText: {
     color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-    letterSpacing: 1.2,
+    fontWeight: '900',
+    fontSize: 15,
+    letterSpacing: 0.8,
   },
   saveButtonArrow: {
     color: '#fff',
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: '900',
   },
 });
