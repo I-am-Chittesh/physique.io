@@ -4,7 +4,7 @@ import { View, Text, StyleSheet } from 'react-native';
 export default function Placeholder() {
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Work in Progress...</Text>
+      <Text style={styles.text}>Work in not Progress...</Text>
     </View>
   );
 }
