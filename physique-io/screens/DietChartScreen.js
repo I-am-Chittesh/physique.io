@@ -11,9 +11,10 @@ import {
   KeyboardAvoidingView,
   Platform
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../supabase';
 
-export default function DietChartScreen({ onDietSaved }) {
+export default function DietChartScreen({ onDietSaved, onGoBack }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
@@ -120,51 +121,104 @@ export default function DietChartScreen({ onDietSaved }) {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
+        {/* BACK BUTTON */}
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={onGoBack}
+        >
+          <Text style={styles.backButtonText}>← Back</Text>
+        </TouchableOpacity>
+
+        {/* PROGRESS INDICATOR */}
+        <View style={styles.progressSection}>
+          <View style={styles.progressBar}>
+            <View style={[styles.progressFill, { width: `${(Object.keys(targets).length / mealCount) * 100}%` }]} />
+          </View>
+          <Text style={styles.progressText}>
+            {Object.keys(targets).length} of {mealCount} meals set
+          </Text>
+        </View>
+
+        {/* HEADER */}
         <View style={styles.header}>
           <Text style={styles.title}>Design Your Diet</Text>
           <Text style={styles.subtitle}>
-            You have {mealCount} meal slots. Assign a calorie target to each.
+            Set calorie targets for each meal
           </Text>
         </View>
 
         {/* DYNAMIC MEAL INPUTS */}
         <View style={styles.list}>
           {Array.from({ length: mealCount }, (_, i) => i + 1).map((num) => (
-            <View key={num} style={styles.card}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.mealLabel}>Meal {num}</Text>
-                <Text style={styles.calLabel}>CALORIES</Text>
+            <LinearGradient
+              key={num}
+              colors={['rgba(255, 140, 0, 0.08)', 'rgba(255, 140, 0, 0.02)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.cardGradient}
+            >
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <View style={styles.mealNumberBadge}>
+                    <Text style={styles.mealNumber}>{num}</Text>
+                  </View>
+                  <Text style={styles.mealLabel}>Meal {num}</Text>
+                  <View style={styles.caloriesBadge}>
+                    <Text style={styles.calLabel}>KCAL</Text>
+                  </View>
+                </View>
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="500"
+                    placeholderTextColor="#667085"
+                    keyboardType="numeric"
+                    value={targets[num]}
+                    onChangeText={(text) => handleInputChange(num, text)}
+                  />
+                  {targets[num] && (
+                    <View style={styles.inputDeco}>
+                      <Text style={styles.inputDecoText}>✓</Text>
+                    </View>
+                  )}
+                </View>
               </View>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g. 500"
-                placeholderTextColor="#667085"
-                keyboardType="numeric"
-                value={targets[num]}
-                onChangeText={(text) => handleInputChange(num, text)}
-              />
-            </View>
+            </LinearGradient>
           ))}
         </View>
 
         {/* FOOTER SUMMARY */}
-        <View style={styles.footer}>
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>TOTAL DAILY TARGET:</Text>
-            <Text style={styles.totalValue}>{totalCalories} kcal</Text>
-          </View>
+        <View style={styles.footerSection}>
+          <LinearGradient
+            colors={['rgba(255, 140, 0, 0.15)', 'rgba(255, 140, 0, 0.05)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.totalCardGradient}
+          >
+            <View style={styles.totalCard}>
+              <Text style={styles.totalLabel}>DAILY TARGET</Text>
+              <View style={styles.totalValueContainer}>
+                <Text style={styles.totalValue}>{totalCalories}</Text>
+                <Text style={styles.totalUnit}>kcal</Text>
+              </View>
+            </View>
+          </LinearGradient>
 
           <TouchableOpacity 
-            style={styles.saveButton} 
+            style={[styles.saveButton, saving && styles.saveButtonDisabled]}
             onPress={handleSaveTargets}
             disabled={saving}
+            activeOpacity={0.85}
           >
             {saving ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.saveButtonText}>FINALIZE PLAN</Text>
+              <>
+                <Text style={styles.saveButtonText}>FINALIZE PLAN</Text>
+                <Text style={styles.saveButtonArrow}>→</Text>
+              </>
             )}
           </TouchableOpacity>
         </View>
@@ -177,7 +231,7 @@ export default function DietChartScreen({ onDietSaved }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A192F', // Deep Navy
+    backgroundColor: '#0A192F',
   },
   center: {
     flex: 1,
@@ -186,96 +240,248 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   scrollContent: {
-    padding: 24,
-    paddingBottom: 50,
+    padding: 20,
+    paddingBottom: 40,
+    paddingTop: 20,
   },
+  backButton: {
+    alignSelf: 'flex-start',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 10,
+    backgroundColor: 'rgba(136, 146, 176, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(136, 146, 176, 0.2)',
+  },
+  backButtonText: {
+    color: '#8892b0',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  
+  /* PROGRESS SECTION */
+  progressSection: {
+    marginBottom: 32,
+    marginTop: 20,
+  },
+  progressBar: {
+    height: 6,
+    backgroundColor: 'rgba(136, 146, 176, 0.15)',
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginBottom: 10,
+    shadowColor: '#FF8C00',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#FF8C00',
+    borderRadius: 3,
+  },
+  progressText: {
+    fontSize: 13,
+    color: '#8892b0',
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
+
+  /* HEADER */
   header: {
-    marginBottom: 20,
-    marginTop: 40,
+    marginBottom: 28,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 32,
+    fontWeight: '800',
     color: '#fff',
     marginBottom: 8,
+    letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 16,
     color: '#8892b0',
+    fontWeight: '500',
+    lineHeight: 24,
   },
+
+  /* MEAL LIST */
   list: {
-    gap: 15,
+    gap: 16,
+    marginBottom: 28,
+  },
+  cardGradient: {
+    borderRadius: 16,
+    padding: 1,
+    shadowColor: '#FF8C00',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 6,
   },
   card: {
-    backgroundColor: '#112240',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: 'rgba(17, 34, 64, 0.6)',
+    borderRadius: 16,
+    padding: 18,
     borderWidth: 1,
-    borderColor: '#233554',
+    borderColor: 'rgba(255, 140, 0, 0.2)',
+    backdropFilter: 'blur(20px)',
   },
   cardHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 14,
+  },
+  mealNumberBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 140, 0, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 140, 0, 0.3)',
+  },
+  mealNumber: {
+    color: '#FF8C00',
+    fontWeight: '800',
+    fontSize: 18,
   },
   mealLabel: {
-    color: '#FF8C00', // Orange
-    fontWeight: 'bold',
+    color: '#ccd6f6',
+    fontWeight: '700',
     fontSize: 16,
+    flex: 1,
+  },
+  caloriesBadge: {
+    backgroundColor: 'rgba(136, 146, 176, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(136, 146, 176, 0.2)',
   },
   calLabel: {
     color: '#667085',
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  inputContainer: {
+    position: 'relative',
+    borderRadius: 12,
   },
   input: {
-    backgroundColor: '#0A192F',
+    backgroundColor: 'rgba(10, 25, 47, 0.8)',
     color: '#fff',
-    padding: 12,
-    borderRadius: 8,
-    fontSize: 18,
+    padding: 16,
+    borderRadius: 12,
+    fontSize: 20,
     fontWeight: 'bold',
     textAlign: 'center',
-    borderWidth: 1,
-    borderColor: '#233554',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 140, 0, 0.2)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  footer: {
-    marginTop: 30,
-    borderTopWidth: 1,
-    borderTopColor: '#233554',
-    paddingTop: 20,
-  },
-  totalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  inputDeco: {
+    position: 'absolute',
+    right: 16,
+    top: '50%',
+    marginTop: -12,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 140, 0, 0.3)',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
   },
-  totalLabel: {
-    color: '#8892b0',
+  inputDecoText: {
+    color: '#FF8C00',
     fontSize: 14,
     fontWeight: 'bold',
   },
+
+  /* FOOTER */
+  footerSection: {
+    gap: 16,
+  },
+  totalCardGradient: {
+    borderRadius: 16,
+    padding: 1,
+    shadowColor: '#FF8C00',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  totalCard: {
+    backgroundColor: 'rgba(17, 34, 64, 0.7)',
+    borderRadius: 16,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 140, 0, 0.25)',
+    alignItems: 'center',
+    backdropFilter: 'blur(20px)',
+  },
+  totalLabel: {
+    color: '#8892b0',
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+    marginBottom: 10,
+  },
+  totalValueContainer: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 8,
+  },
   totalValue: {
-    color: '#fff',
-    fontSize: 24,
-    fontWeight: 'bold',
+    color: '#FF8C00',
+    fontSize: 44,
+    fontWeight: '900',
+    letterSpacing: -1,
+  },
+  totalUnit: {
+    color: '#8892b0',
+    fontSize: 16,
+    fontWeight: '700',
   },
   saveButton: {
+    flexDirection: 'row',
     backgroundColor: '#FF8C00',
     paddingVertical: 18,
-    borderRadius: 15,
+    paddingHorizontal: 24,
+    borderRadius: 16,
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
     shadowColor: '#FF8C00',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    elevation: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  saveButtonDisabled: {
+    opacity: 0.7,
   },
   saveButtonText: {
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
-    letterSpacing: 1,
+    letterSpacing: 1.2,
+  },
+  saveButtonArrow: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '800',
   },
 });

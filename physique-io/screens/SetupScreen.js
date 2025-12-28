@@ -9,11 +9,12 @@ import {
   ActivityIndicator,
   ScrollView,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  LinearGradient
 } from 'react-native';
 import { supabase } from '../supabase';
 
-export default function SetupScreen({ onProfileSaved }) {
+export default function SetupScreen({ onProfileSaved, onGoBack }) {
   const [loading, setLoading] = useState(false);
   
   // Input States
@@ -24,7 +25,7 @@ export default function SetupScreen({ onProfileSaved }) {
   const [mealsPerDay, setMealsPerDay] = useState('3'); // Default 3 meals
   
   // Goal Selection (bulk, cut, maintain)
-  const [goal, setGoal] = useState('maintain'); 
+  const [goal, setGoal] = useState('maintain');
 
   async function handleSaveProfile() {
     // 1. Validation
@@ -87,6 +88,27 @@ export default function SetupScreen({ onProfileSaved }) {
       style={styles.container}
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        
+        {/* BACK BUTTON */}
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => {
+            Alert.alert(
+              "Log Out",
+              "Are you sure you want to log out?",
+              [
+                { text: "Cancel", onPress: () => {}, style: "cancel" },
+                {
+                  text: "Log Out",
+                  onPress: () => onGoBack?.(),
+                  style: "destructive"
+                }
+              ]
+            );
+          }}
+        >
+          <Text style={styles.backButtonText}>← Back</Text>
+        </TouchableOpacity>
         
         {/* HEADER */}
         <View style={styles.header}>
@@ -194,7 +216,22 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 24,
-    paddingTop: 60,
+    paddingTop: 20,
+  },
+  backButton: {
+    alignSelf: 'flex-start',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 10,
+    backgroundColor: 'rgba(136, 146, 176, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(136, 146, 176, 0.2)',
+  },
+  backButtonText: {
+    color: '#8892b0',
+    fontWeight: '600',
+    fontSize: 14,
   },
   header: {
     marginBottom: 30,
