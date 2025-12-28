@@ -12,6 +12,7 @@ import {
   Alert,
   Keyboard
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../supabase';
 
@@ -26,7 +27,7 @@ const debounce = (func, delay) => {
   };
 };
 
-export default function LogMealScreen({ route, navigation }) {
+export default function LogMealScreen({ route, onGoBack }) {
   const { mealNumber } = route.params || { mealNumber: 1 }; // Default to 1 if missing
 
   const [searchText, setSearchText] = useState('');
@@ -106,8 +107,11 @@ export default function LogMealScreen({ route, navigation }) {
 
       if (error) throw error;
 
-      // Success! Go back to Dashboard
-      navigation.goBack();
+      // Success! Refresh dashboard
+      Alert.alert("Success", "Meal logged!");
+      setSelectedFood(null);
+      setQuantity('');
+      setSearchText('');
 
     } catch (error) {
       Alert.alert("Save Error", error.message);
@@ -148,19 +152,19 @@ export default function LogMealScreen({ route, navigation }) {
       
       {/* HEADER */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+        <TouchableOpacity onPress={onGoBack} style={styles.backBtn}>
+          <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Log Meal {mealNumber}</Text>
-        <View style={{ width: 24 }} /> 
+        <View style={{ width: 60 }} /> 
       </View>
 
       {/* SEARCH BAR */}
       <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="#8892b0" style={styles.searchIcon} />
+        <Ionicons name="search" size={20} color="#a8b5c9" style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search food (e.g., Oats, Chicken)"
+          placeholder="Search food..."
           placeholderTextColor="#667085"
           value={searchText}
           onChangeText={handleTextChange}
@@ -187,46 +191,59 @@ export default function LogMealScreen({ route, navigation }) {
       {selectedFood && (
         <KeyboardAvoidingView 
           behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={styles.bottomSheet}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
+          style={styles.bottomSheetContainer}
         >
-          <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>{selectedFood.food_name}</Text>
-            <TouchableOpacity onPress={() => setSelectedFood(null)}>
-              <Ionicons name="close" size={24} color="#667085" />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.inputRow}>
-            <View style={styles.inputWrapper}>
-              <Text style={styles.inputLabel}>WEIGHT (g)</Text>
-              <TextInput
-                style={styles.gramInput}
-                keyboardType="numeric"
-                placeholder="100"
-                placeholderTextColor="#667085"
-                value={quantity}
-                onChangeText={setQuantity}
-                autoFocus={true} // Focuses on grams immediately after selection
-              />
+          <View style={styles.bottomSheet}>
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>{selectedFood.food_name}</Text>
+              <TouchableOpacity onPress={() => setSelectedFood(null)}>
+                <Ionicons name="close" size={24} color="#FF8C00" />
+              </TouchableOpacity>
             </View>
 
-            <View style={styles.calcWrapper}>
-              <Text style={styles.inputLabel}>TOTAL CALORIES</Text>
-              <Text style={styles.totalCals}>{calculateCalories()}</Text>
-            </View>
-          </View>
+            <View style={styles.inputRow}>
+              <View style={styles.inputWrapper}>
+                <Text style={styles.inputLabel}>WEIGHT (g)</Text>
+                <TextInput
+                  style={styles.gramInput}
+                  keyboardType="numeric"
+                  placeholder="100"
+                  placeholderTextColor="#667085"
+                  value={quantity}
+                  onChangeText={setQuantity}
+                  autoFocus={true}
+                />
+              </View>
 
-          <TouchableOpacity 
-            style={styles.addButton}
-            onPress={handleAddLog}
-            disabled={submitting}
-          >
-            {submitting ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.btnText}>ADD TO LOG</Text>
-            )}
-          </TouchableOpacity>
+              <View style={styles.calcWrapper}>
+                <Text style={styles.inputLabel}>CALORIES</Text>
+                <Text style={styles.totalCals}>{calculateCalories()}</Text>
+              </View>
+            </View>
+
+            <LinearGradient
+              colors={['#FF8C00', '#FF6B00']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.addButtonGradient}
+            >
+              <TouchableOpacity 
+                style={styles.addButton}
+                onPress={handleAddLog}
+                disabled={submitting}
+              >
+                {submitting ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <Text style={styles.btnText}>ADD TO LOG</Text>
+                    <Text style={styles.btnArrow}>→</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </LinearGradient>
+          </View>
         </KeyboardAvoidingView>
       )}
 
@@ -237,7 +254,7 @@ export default function LogMealScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A192F',
+    backgroundColor: '#0A1628',
   },
   header: {
     flexDirection: 'row',
@@ -250,47 +267,56 @@ const styles = StyleSheet.create({
   backBtn: {
     padding: 5,
   },
+  backButtonText: {
+    color: '#FF8C00',
+    fontWeight: '700',
+    fontSize: 13,
+  },
   headerTitle: {
     color: '#fff',
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '900',
+    letterSpacing: -0.5,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
     marginHorizontal: 20,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    marginBottom: 20,
   },
   searchIcon: {
-    marginLeft: 15,
+    marginLeft: 12,
   },
   searchInput: {
     flex: 1,
-    paddingVertical: 15,
+    paddingVertical: 12,
     paddingHorizontal: 10,
     color: '#fff',
     fontSize: 16,
+    fontWeight: '500',
   },
   listContent: {
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
   resultCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#112240',
-    padding: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    padding: 14,
     borderRadius: 12,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#233554',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   selectedCard: {
-    borderColor: '#FF8C00',
-    backgroundColor: 'rgba(255, 140, 0, 0.1)',
+    borderColor: 'rgba(255, 140, 0, 0.3)',
+    backgroundColor: 'rgba(255, 140, 0, 0.08)',
   },
   foodName: {
     color: '#fff',
@@ -302,44 +328,48 @@ const styles = StyleSheet.create({
     color: '#FF8C00',
   },
   foodMacro: {
-    color: '#8892b0',
+    color: '#a8b5c9',
     fontSize: 12,
   },
   emptyText: {
     color: '#667085',
     textAlign: 'center',
     marginTop: 30,
+    fontSize: 14,
   },
   // Bottom Sheet Styles
+  bottomSheetContainer: {
+    position: 'absolute',
+    top: 280,
+    left: 0,
+    right: 0,
+    zIndex: 999,
+  },
   bottomSheet: {
-    backgroundColor: '#112240',
-    borderTopLeftRadius: 25,
-    borderTopRightRadius: 25,
-    padding: 25,
+    backgroundColor: 'rgba(10, 22, 40, 0.95)',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 24,
     paddingBottom: 40,
     borderTopWidth: 1,
-    borderColor: '#FF8C00',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -5 },
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
-    elevation: 20,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   sheetHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
   },
   sheetTitle: {
     color: '#fff',
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '900',
+    letterSpacing: -0.5,
   },
   inputRow: {
     flexDirection: 'row',
-    gap: 20,
-    marginBottom: 25,
+    gap: 16,
+    marginBottom: 20,
   },
   inputWrapper: {
     flex: 1,
@@ -348,43 +378,58 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#233554',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    paddingVertical: 12,
   },
   inputLabel: {
-    color: '#8892b0',
+    color: '#a8b5c9',
     fontSize: 12,
-    fontWeight: 'bold',
-    marginBottom: 8,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    marginBottom: 6,
   },
   gramInput: {
-    backgroundColor: '#0A192F',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     color: '#fff',
     fontSize: 24,
     fontWeight: 'bold',
-    padding: 15,
-    borderRadius: 12,
+    padding: 13,
+    borderRadius: 10,
     textAlign: 'center',
     borderWidth: 1,
-    borderColor: '#233554',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   totalCals: {
-    color: '#FF8C00',
-    fontSize: 24,
-    fontWeight: 'bold',
+    color: '#fff',
+    fontSize: 32,
+    fontWeight: '900',
+    letterSpacing: -1,
+  },
+  addButtonGradient: {
+    borderRadius: 14,
+    overflow: 'hidden',
+    marginTop: 20,
   },
   addButton: {
-    backgroundColor: '#FF8C00',
-    paddingVertical: 16,
-    borderRadius: 15,
+    flexDirection: 'row',
+    paddingVertical: 14,
+    paddingHorizontal: 28,
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
   btnText: {
     color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-    letterSpacing: 1,
+    fontWeight: '900',
+    fontSize: 15,
+    letterSpacing: 0.8,
+  },
+  btnArrow: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '900',
   },
 });

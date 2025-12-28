@@ -8,6 +8,7 @@ import SetupScreen from './screens/SetupScreen';
 import DietChartScreen from './screens/DietChartScreen';
 import DashboardScreen from './screens/DashboardScreen';
 import LogMealScreen from './screens/LogMealScreen'; // <--- Make sure this is imported
+import ProfileScreen from './screens/ProfileScreen';
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -77,10 +78,14 @@ export default function App() {
   // ... keep all your imports and checks (checkUserStatus, etc.) above this ...
 
   // --- NAVIGATION HANDLERS ---
-  const handleLogClick = (params) => {
-    console.log("Navigating to Log Meal:", params); // DEBUG LOG
-    setLogParams(params);
-    setCurrentView('logMeal');
+  const handleNavigate = (screenName, params) => {
+    if (screenName === 'LogMealScreen') {
+      setLogParams(params);
+      setCurrentView('logMeal');
+    } else if (screenName === 'ProfileScreen') {
+      // NEW: Switch to Profile View
+      setCurrentView('profile');
+    }
   };
 
   const handleBackToDash = () => {
@@ -106,7 +111,7 @@ export default function App() {
     return <DietChartScreen onComplete={() => checkUserStatus(session.user.id)} />;
   }
 
-  // --- THE SWITCHER ---
+  // --- VIEW SWITCHER ---
   if (currentView === 'logMeal') {
     return (
       <LogMealScreen 
@@ -116,11 +121,16 @@ export default function App() {
     );
   }
 
+  if (currentView === 'profile') {
+    // NEW: Render Profile Screen
+    return <ProfileScreen onBack={handleBackToDash} />;
+  }
+
   // Default: Dashboard
-  // NOTICE: We are passing 'onLogClick' directly now
   return (
     <DashboardScreen 
-      onLogClick={handleLogClick} 
+      onLogClick={(params) => handleNavigate('LogMealScreen', params)} 
+      onProfileClick={() => handleNavigate('ProfileScreen')} // NEW: Pass this prop
     />
   );
 }

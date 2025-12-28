@@ -61,7 +61,8 @@ const ProgressRing = ({ radius, stroke, progress, target, consumed }) => {
 };
 
 // --- COMPONENT: GLASS PROFILE CARD ---
-const GlassHeader = ({ name, goal }) => (
+// Add 'onIconPress' to props
+const GlassHeader = ({ name, goal, onIconPress }) => (
   <View style={styles.glassCard}>
     <View style={styles.glassContent}>
       <View style={styles.avatarCircle}>
@@ -72,15 +73,15 @@ const GlassHeader = ({ name, goal }) => (
         <Text style={styles.goalText}>Current Goal: {goal ? goal.toUpperCase() : 'LOADING...'}</Text>
       </View>
     </View>
-    {/* Optional Settings Icon */}
-    <TouchableOpacity>
+    {/* Update this TouchableOpacity */}
+    <TouchableOpacity onPress={onIconPress}>
       <Ionicons name="settings-outline" size={24} color="rgba(255,255,255,0.6)" />
     </TouchableOpacity>
   </View>
 );
-
 // --- MAIN SCREEN ---
-export default function DashboardScreen({ onLogClick }) {
+// Add 'onProfileClick' to props
+export default function DashboardScreen({ onLogClick, onProfileClick }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   
@@ -170,10 +171,15 @@ export default function DashboardScreen({ onLogClick }) {
   }
 
   return (
+    
     <View style={styles.container}>
       {/* 1. GLASS PROFILE HEADER */}
       <View style={styles.headerContainer}>
-        <GlassHeader name={profile.full_name} goal={profile.goal_mode} />
+        <GlassHeader 
+          name={profile.full_name} 
+          goal={profile.goal_mode} 
+          onIconPress={onProfileClick}
+        />
       </View>
 
       <ScrollView 
@@ -212,20 +218,17 @@ export default function DashboardScreen({ onLogClick }) {
 
             return (
               <TouchableOpacity 
-  key={meal.id} 
-  style={[styles.mealCard, isLogged ? styles.loggedCard : styles.emptyCard]}
-  onPress={() => {
-     // DIRECT CALL
-     if (onLogClick) {
-       onLogClick({ 
-         mealNumber: meal.meal_number, 
-         targetCalories: meal.target_calories 
-       });
-     } else {
-       console.log("Error: onLogClick prop is missing");
-     }
-  }}
->
+                key={meal.id} 
+                style={[styles.mealCard, isLogged ? styles.loggedCard : styles.emptyCard]}
+                onPress={() => {
+                  if (onLogClick) {
+                    onLogClick({ 
+                      mealNumber: meal.meal_number, 
+                      targetCalories: meal.target_calories 
+                    });
+                  }
+                }}
+              >
                 <View style={styles.cardLeft}>
                   <View style={[styles.iconBox, isLogged ? styles.iconLogged : styles.iconEmpty]}>
                     <Ionicons 
