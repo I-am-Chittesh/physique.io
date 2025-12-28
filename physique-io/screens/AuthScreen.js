@@ -27,57 +27,83 @@ export default function AuthScreen() {
   const [fullName, setFullName] = useState('');
 
 const handleAuth = async () => {
-    if (!email || !password || (!isLogin && !fullName)) {
-      Alert.alert("Missing Fields", "Please fill in all details.");
-      return;
-    }
+  // Validate inputs
+  if (!email || !password) {
+    Alert.alert("Missing Fields", "Email and password are required.");
+    return;
+  }
 
-    setLoading(true);
+  if (!isLogin && !fullName) {
+    Alert.alert("Missing Fields", "Please enter your full name.");
+    return;
+  }
 
-    try {
-      if (isLogin) {
-        // --- LOGIN LOGIC ---
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password: password,
-        });
+  if (!isLogin && password.length < 6) {
+    Alert.alert("Weak Password", "Password must be at least 6 characters.");
+    return;
+  }
 
-        if (error) {
-          // If password is wrong or email doesn't exist
-          Alert.alert("Login Failed", error.message);
-        } else if (data.session) {
-          console.log("Login Successful, Session established");
-          // App.js will now automatically detect this and move to Dashboard
+  setLoading(true);
+
+  try {
+    if (isLogin) {
+      // LOGIN MODE: Check email and password exist in database
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: password,
+      });
+
+      if (error) {
+        if (error.message.includes("Invalid login credentials")) {
+          Alert.alert(
+            "Invalid Credentials", 
+            "Email or password is incorrect. Please try again."
+          );
+        } else {
+          Alert.alert("Login Error", error.message);
         }
       } else {
-        // --- SIGNUP LOGIC ---
-        const { data, error } = await supabase.auth.signUp({
-          email: email.trim(),
-          password: password,
+        // Login successful - App.js will auto-navigate to Dashboard
+        Alert.alert("Success", "Welcome back!");
+      }
+    } else {
+      // SIGNUP MODE: Create new account
+      const { data: signupData, error: signupError } = await supabase.auth.signUp({
+        email: email.trim(),
+        password: password,
+      });
+
+      if (signupError) {
+        if (signupError.message.includes("already registered")) {
+          Alert.alert(
+            "Email Already Exists", 
+            "This email is already registered. Please login or use a different email."
+          );
+        } else {
+          Alert.alert("Signup Failed", signupError.message);
+        }
+      } else if (signupData.user) {
+        // Create profile entry with user's full name
+        const { error: profileError } = await supabase.from('profiles').insert({
+          id: signupData.user.id,
+          full_name: fullName,
         });
 
-        if (error) {
-          Alert.alert("Signup Error", error.message);
-        } else if (data.user) {
-          // Ensure the profile row is created
-          const { error: profileError } = await supabase.from('profiles').upsert({
-            id: data.user.id,
-            full_name: fullName,
-          });
-
-          if (profileError) {
-            console.log("Profile Sync Error:", profileError.message);
-          }
-          Alert.alert("Success", "Account created! Moving to Setup.");
+        if (profileError) {
+          Alert.alert("Profile Error", profileError.message);
+        } else {
+          Alert.alert("Success", "Account created! Now setting up your physique.");
+          // App.js will auto-navigate to SetupScreen
         }
       }
-    } catch (err) {
-      Alert.alert("System Error", "An unexpected error occurred.");
-      console.error(err);
-    } finally {
-      setLoading(false);
     }
-  };
+  } catch (err) {
+    console.error("Auth Error:", err);
+    Alert.alert("Error", "Something went wrong. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <KeyboardAvoidingView 
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -168,29 +194,34 @@ const handleAuth = async () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A192F', // Deepest Navy
+    backgroundColor: '#0A192F',
   },
   semiCircle: {
     height: height * 0.38,
-    width: width * 1.4, // Over-width to create the curve
-    backgroundColor: '#112240', // Midnight Navy
+    width: width * 1.4,
+    backgroundColor: '#1e6fb8',
     alignSelf: 'center',
-    borderBottomLeftRadius: width,
-    borderBottomRightRadius: width,
+    borderBottomLeftRadius: 320,
+    borderBottomRightRadius: 320,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 40,
+    paddingTop: 10,
   },
   logoIcon: {
-    width: 80,
-    height: 80,
-    marginBottom: 10,
+    width: 208,
+    height: 208,
+    marginBottom: 8,
   },
   brandName: {
-    color: '#FF8C00', // Orange Accent
-    fontSize: 28,
+    color: '#FF8C00',
+    fontSize: 36,
     fontWeight: '900',
-    letterSpacing: 3,
+    letterSpacing: 4,
+    textAlign: 'center',
+    marginTop: -8,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 4,
   },
   formSection: {
     flex: 1,
@@ -199,19 +230,21 @@ const styles = StyleSheet.create({
   },
   toggleWrapper: {
     flexDirection: 'row',
-    backgroundColor: '#1d3557',
-    borderRadius: 15,
-    padding: 5,
+    backgroundColor: 'rgba(29, 53, 87, 0.6)',
+    borderRadius: 20,
+    padding: 6,
     marginBottom: 30,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 140, 0, 0.2)',
   },
   toggleBtn: {
     flex: 1,
     paddingVertical: 12,
     alignItems: 'center',
-    borderRadius: 12,
+    borderRadius: 16,
   },
   activeToggle: {
-    backgroundColor: '#0A192F',
+    backgroundColor: 'rgba(10, 25, 47, 0.8)',
     borderWidth: 1,
     borderColor: '#FF8C00',
   },
@@ -226,18 +259,18 @@ const styles = StyleSheet.create({
     gap: 15,
   },
   input: {
-    backgroundColor: '#112240',
+    backgroundColor: 'rgba(17, 34, 64, 0.7)',
     color: '#fff',
     padding: 18,
-    borderRadius: 15,
+    borderRadius: 18,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#1d3557',
+    borderColor: 'rgba(255, 140, 0, 0.15)',
   },
   mainButton: {
-    backgroundColor: '#FF8C00', // Solid Orange
+    backgroundColor: '#FF8C00',
     paddingVertical: 18,
-    borderRadius: 15,
+    borderRadius: 28,
     alignItems: 'center',
     marginTop: 30,
     shadowColor: '#FF8C00',

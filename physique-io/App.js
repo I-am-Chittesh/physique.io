@@ -90,12 +90,12 @@ export default function App() {
 
   // 2. Logged In, but No Age/Weight -> Setup Screen
   if (!hasProfileData) {
-    return <SetupScreen />;
+    return <SetupScreen onProfileSaved={() => checkUserStatus(session.user.id)} />;
   }
 
   // 3. Has Stats, but No Diet Targets -> Diet Chart Screen
   if (!hasDietChart) {
-    return <DietChartScreen />;
+    return <DietChartScreen onDietSaved={() => checkUserStatus(session.user.id)} />;
   }
 
   // 4. Has Everything -> Dashboard
