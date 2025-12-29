@@ -1,10 +1,10 @@
-# Physique.io 🚀
+# Physique.io 
 
 Physique.io is a high-performance fitness and nutrition tracking mobile application built to help users hit their calorie targets with precision. Featuring a glassmorphic UI and a robust real-time backend, it provides a seamless experience for logging meals, calculating macros, and visualizing long-term consistency.
 
 
 
-## ✨ Features
+##  Features
 
 - **Personalized Calibration:** Smart onboarding to calculate daily calorie targets based on height, weight, and fitness goals (Bulk/Cut/Maintain).
 - **Interactive Dashboard:** A "Progress Ring" visualizer that updates in real-time as you log meals.
@@ -13,7 +13,7 @@ Physique.io is a high-performance fitness and nutrition tracking mobile applicat
 - **Consistency Heatmap:** A GitHub-style activity grid in the Profile section to track your logging streaks over 28 days.
 - **Real-time Sync:** Powered by Supabase to ensure your data is always safe and accessible across devices.
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 - **Frontend:** React Native (Expo)
 - **State Management:** React Hooks (useState, useEffect)
@@ -21,7 +21,7 @@ Physique.io is a high-performance fitness and nutrition tracking mobile applicat
 - **Icons:** Ionicons (Expo Vector Icons)
 - **Deployment:** EAS Build (Android APK/AAB)
 
-## 🚀 Getting Started
+##  Getting Started
 
 ### Prerequisites
 
