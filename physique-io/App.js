@@ -93,6 +93,15 @@ export default function App() {
     setCurrentView('dashboard');
   };
 
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      // Session state will be updated via the auth listener
+    } catch (error) {
+      console.log("Logout Error:", error);
+    }
+  };
+
  // 🚦 RENDER LOGIC
   if (loading) {
     return (
@@ -116,7 +125,10 @@ export default function App() {
     return (
       <>
         <StatusBar style="light" />
-        <SetupScreen onComplete={() => checkUserStatus(session.user.id)} />
+        <SetupScreen 
+          onProfileSaved={() => checkUserStatus(session.user.id)} 
+          onGoBack={handleLogout}
+        />
       </>
     );
   }
@@ -125,7 +137,10 @@ export default function App() {
     return (
       <>
         <StatusBar style="light" />
-        <DietChartScreen onComplete={() => checkUserStatus(session.user.id)} />
+        <DietChartScreen 
+          onDietSaved={() => checkUserStatus(session.user.id)}
+          onGoBack={handleLogout}
+        />
       </>
     );
   }

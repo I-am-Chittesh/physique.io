@@ -31,7 +31,7 @@ export default function LogMealScreen({ route, onGoBack, navigation }) {
   const { mealNumber } = route.params || { mealNumber: 1 }; // Default to 1 if missing
   
   // Support both onGoBack prop and navigation.goBack
-  const handleGoBack = onGoBack || (navigation && navigation.goBack);
+  const handleGoBack = onGoBack || (navigation?.goBack);
 
   const [searchText, setSearchText] = useState('');
   const [results, setResults] = useState([]);
