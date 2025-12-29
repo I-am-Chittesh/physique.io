@@ -4,31 +4,33 @@
     "slug": "physique-io",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/splash-image.png",
+    "icon": "./assets/adaptive-icon.png",
     "userInterfaceStyle": "dark",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#0A192F"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.chittesh.physiqueio" 
+      "bundleIdentifier": "com.chittesh.physiqueio"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0A192F"
       },
-      "package": "com.chittesh.physiqueio"
+      "package": "com.chittesh.physiqueio",
+      "versionCode": 1
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "extra": {
       "eas": {
-        "projectId": "your-project-id-will-go-here-automatically"
+        "projectId": "a2af8560-e893-42eb-9172-3f8d4f1eaacf"
       }
-    }
+    },
+    "owner": "iamchittesh"
   }
 }
