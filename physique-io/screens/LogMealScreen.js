@@ -39,7 +39,8 @@ export default function LogMealScreen({ route, onGoBack, navigation }) {
   
   // Selection State
   const [selectedFood, setSelectedFood] = useState(null); // The food object
-  const [quantity, setQuantity] = useState('');           // The user input string
+  const [quantity, setQuantity] = useState('');           // The user input string (grams)
+  const [pieces, setPieces] = useState('');               // Number of pieces
   const [submitting, setSubmitting] = useState(false);
 
   // 1. SEARCH LOGIC (Debounced)
@@ -74,22 +75,44 @@ export default function LogMealScreen({ route, onGoBack, navigation }) {
     debouncedSearch(text);
   };
 
-  // 2. MATH LOGIC
+  // 2. MATH LOGIC - Support both weight-based and piece-based calculation
   const calculateCalories = () => {
-    if (!selectedFood || !quantity) return 0;
-    const grams = parseFloat(quantity);
-    if (isNaN(grams)) return 0;
+    if (!selectedFood) return 0;
     
-    // (Cal per 100g * grams) / 100
-    return Math.round((selectedFood.calories_per_100g * grams) / 100);
+    // Option 1: Calculate from pieces (if pieces entered and calories_per_piece exists)
+    if (pieces && selectedFood.calories_per_piece) {
+      const numPieces = parseFloat(pieces);
+      if (isNaN(numPieces) || numPieces <= 0) return 0;
+      return Math.round(numPieces * selectedFood.calories_per_piece);
+    }
+    
+    // Option 2: Calculate from weight in grams (if quantity entered)
+    if (quantity) {
+      const grams = parseFloat(quantity);
+      if (isNaN(grams) || grams <= 0) return 0;
+      
+      // If calories_per_piece exists, try to convert grams to pieces
+      if (selectedFood.calories_per_piece && selectedFood.grams_per_piece) {
+        const numPieces = grams / selectedFood.grams_per_piece;
+        return Math.round(numPieces * selectedFood.calories_per_piece);
+      }
+      
+      // Fallback to per 100g calculation
+      if (selectedFood.calories_per_100g) {
+        return Math.round((selectedFood.calories_per_100g * grams) / 100);
+      }
+    }
+    
+    return 0;
   };
 
   // 3. SAVE LOGIC
   const handleAddLog = async () => {
     const finalCals = calculateCalories();
     
+    // Validate that either weight or pieces is entered
     if (finalCals === 0) {
-      Alert.alert("Invalid Quantity", "Please enter a valid weight in grams.");
+      Alert.alert("Invalid Input", "Please enter either weight (g) or number of pieces.");
       return;
     }
 
@@ -98,13 +121,24 @@ export default function LogMealScreen({ route, onGoBack, navigation }) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No User");
 
+      // Calculate total grams for storage
+      let totalGrams = 0;
+      
+      if (quantity) {
+        // Weight was entered directly
+        totalGrams = parseFloat(quantity);
+      } else if (pieces && selectedFood.grams_per_piece) {
+        // Convert pieces to grams
+        totalGrams = parseFloat(pieces) * selectedFood.grams_per_piece;
+      }
+
       const { error } = await supabase
         .from('meal_logs')
         .insert({
           user_id: user.id,
           meal_number: mealNumber,
           food_name: selectedFood.food_name,
-          quantity_g: parseFloat(quantity),
+          quantity_g: totalGrams,
           calories_consumed: finalCals,
         });
 
@@ -114,6 +148,7 @@ export default function LogMealScreen({ route, onGoBack, navigation }) {
       Alert.alert("Success", "Meal logged!");
       setSelectedFood(null);
       setQuantity('');
+      setPieces('');
       setSearchText('');
 
     } catch (error) {
@@ -216,6 +251,18 @@ export default function LogMealScreen({ route, onGoBack, navigation }) {
                   value={quantity}
                   onChangeText={setQuantity}
                   autoFocus={true}
+                />
+              </View>
+
+              <View style={styles.inputWrapper}>
+                <Text style={styles.inputLabel}>PIECES</Text>
+                <TextInput
+                  style={styles.gramInput}
+                  keyboardType="numeric"
+                  placeholder="2"
+                  placeholderTextColor="#667085"
+                  value={pieces}
+                  onChangeText={setPieces}
                 />
               </View>
 
@@ -343,7 +390,7 @@ const styles = StyleSheet.create({
   // Bottom Sheet Styles
   bottomSheetContainer: {
     position: 'absolute',
-    top: 280,
+    top: 180,
     left: 0,
     right: 0,
     zIndex: 999,
