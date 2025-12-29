@@ -65,24 +65,23 @@ export default function ProfileScreen({ onBack }) {
     if (error) Alert.alert("Error", error.message);
   };
 
-  // Generate 52 weeks x 7 days grid (like GitHub)
+  // Generate 8 weeks x 7 days grid
   const renderGrid = () => {
     const weeks = [];
     const today = new Date();
-    const oneYearAgo = new Date(today);
-    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    const eightWeeksAgo = new Date(today);
+    eightWeeksAgo.setDate(eightWeeksAgo.getDate() - 56);
 
-    for (let week = 0; week < 52; week++) {
+    for (let week = 0; week < 8; week++) {
       const days = [];
       for (let day = 0; day < 7; day++) {
-        const d = new Date(oneYearAgo);
+        const d = new Date(eightWeeksAgo);
         d.setDate(d.getDate() + week * 7 + day);
         const dateStr = d.toISOString().split('T')[0];
         const count = activityData[dateStr] || 0;
 
         let color = '#0A1929'; // Grey - no meals
-        if (count > 0 && count < 3) color = '#1B7E45'; // Medium green - 1-2 meals
-        if (count >= 3) color = '#23C952'; // Bright green - 3+ meals
+        if (count >= 1) color = '#23C952'; // Bright green - 1+ meals
 
         days.push(
           <View
@@ -140,16 +139,14 @@ export default function ProfileScreen({ onBack }) {
 
       {/* CONSISTENCY GRID */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Consistency (Last 52 Weeks)</Text>
+        <Text style={styles.sectionTitle}>Consistency (Last 8 Weeks)</Text>
         <View style={styles.gridWrapper}>
           {renderGrid()}
         </View>
         <View style={styles.legend}>
-          <Text style={styles.legendText}>0 meals</Text>
+          <Text style={styles.legendText}>No activity</Text>
           <View style={[styles.miniSquare, {backgroundColor: '#0A1929'}]} />
-          <Text style={styles.legendText}>1-2 meals</Text>
-          <View style={[styles.miniSquare, {backgroundColor: '#1B7E45'}]} />
-          <Text style={styles.legendText}>3+ meals</Text>
+          <Text style={styles.legendText}>Logged meal</Text>
           <View style={[styles.miniSquare, {backgroundColor: '#23C952'}]} />
         </View>
       </View>
@@ -175,8 +172,8 @@ const styles = StyleSheet.create({
   statLabel: { color: '#8892b0', fontSize: 12, marginBottom: 5 },
   statVal: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
   section: { backgroundColor: '#112240', padding: 20, borderRadius: 20, marginBottom: 30 },
-  sectionTitle: { color: '#fff', fontSize: 16, fontWeight: 'bold', marginBottom: 20 },
-  gridWrapper: { flexDirection: 'row', gap: 4, marginBottom: 20, overflow: 'scroll' },
+  sectionTitle: { color: '#fff', fontSize: 16, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
+  gridWrapper: { flexDirection: 'row', gap: 6, marginBottom: 20, overflow: 'scroll', justifyContent: 'center' },
   weekColumn: { flexDirection: 'column', gap: 3 },
   gitHubSquare: { width: 16, height: 16, borderRadius: 2 },
   legend: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 20, gap: 8, flexWrap: 'wrap' },

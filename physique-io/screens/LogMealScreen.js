@@ -27,8 +27,11 @@ const debounce = (func, delay) => {
   };
 };
 
-export default function LogMealScreen({ route, onGoBack }) {
+export default function LogMealScreen({ route, onGoBack, navigation }) {
   const { mealNumber } = route.params || { mealNumber: 1 }; // Default to 1 if missing
+  
+  // Support both onGoBack prop and navigation.goBack
+  const handleGoBack = onGoBack || (navigation && navigation.goBack);
 
   const [searchText, setSearchText] = useState('');
   const [results, setResults] = useState([]);
@@ -152,7 +155,7 @@ export default function LogMealScreen({ route, onGoBack }) {
       
       {/* HEADER */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={onGoBack} style={styles.backBtn}>
+        <TouchableOpacity onPress={handleGoBack} style={styles.backBtn}>
           <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Log Meal {mealNumber}</Text>

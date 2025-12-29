@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { supabase } from './supabase';
+import { StatusBar } from 'expo-status-bar';
 
 // Import all your screens
 import AuthScreen from './screens/AuthScreen';
@@ -92,45 +93,60 @@ export default function App() {
     setCurrentView('dashboard');
   };
 
-  // 🚦 RENDER LOGIC
+ // 🚦 RENDER LOGIC
   if (loading) {
     return (
       <View style={{ flex: 1, backgroundColor: '#0A192F', justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" color="#FF8C00" />
+        <StatusBar style="light" /> 
       </View>
     );
   }
 
-  if (!session) return <AuthScreen />;
+  if (!session) {
+    return (
+      <>
+        <StatusBar style="light" />
+        <AuthScreen />
+      </>
+    );
+  }
   
   if (!hasProfileData) {
-    return <SetupScreen onComplete={() => checkUserStatus(session.user.id)} />;
-  }
-
-  if (!hasDietChart) {
-    return <DietChartScreen onComplete={() => checkUserStatus(session.user.id)} />;
-  }
-
-  // --- VIEW SWITCHER ---
-  if (currentView === 'logMeal') {
     return (
-      <LogMealScreen 
-        route={{ params: logParams }} 
-        navigation={{ goBack: handleBackToDash }} 
-      />
+      <>
+        <StatusBar style="light" />
+        <SetupScreen onComplete={() => checkUserStatus(session.user.id)} />
+      </>
     );
   }
 
-  if (currentView === 'profile') {
-    // NEW: Render Profile Screen
-    return <ProfileScreen onBack={handleBackToDash} />;
+  if (!hasDietChart) {
+    return (
+      <>
+        <StatusBar style="light" />
+        <DietChartScreen onComplete={() => checkUserStatus(session.user.id)} />
+      </>
+    );
   }
 
-  // Default: Dashboard
+  // --- VIEW SWITCHER ---
   return (
-    <DashboardScreen 
-      onLogClick={(params) => handleNavigate('LogMealScreen', params)} 
-      onProfileClick={() => handleNavigate('ProfileScreen')} // NEW: Pass this prop
-    />
+    <>
+      <StatusBar style="light" />
+      {currentView === 'logMeal' ? (
+        <LogMealScreen 
+          route={{ params: logParams }} 
+          navigation={{ goBack: handleBackToDash }} 
+        />
+      ) : currentView === 'profile' ? (
+        <ProfileScreen onBack={handleBackToDash} />
+      ) : (
+        <DashboardScreen 
+          onLogClick={(params) => handleNavigate('LogMealScreen', params)} 
+          onProfileClick={() => handleNavigate('ProfileScreen')} 
+        />
+      )}
+    </>
   );
 }

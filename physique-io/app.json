@@ -2,28 +2,15 @@
   "expo": {
     "name": "physique-io",
     "slug": "physique-io",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0A192F",
+    "androidStatusBar": {
+      "barStyle": "light-content",
+      "backgroundColor": "#0A192F"
     },
     "ios": {
-      "supportsTablet": true
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "edgeToEdgeEnabled": true
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
+      "supportsTablet": true,
+      "userInterfaceStyle": "dark"
     }
   }
 }
