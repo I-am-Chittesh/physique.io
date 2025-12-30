@@ -14,10 +14,14 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
+// Add '/legacy' to the end to use the old stable methods
+import * as FileSystem from 'expo-file-system/legacy';
+import { decode } from 'base64-arraybuffer';    // <--- NEW
 import { supabase } from '../supabase';
 
 export default function SetupScreen({ onProfileSaved, onGoBack }) {
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   
   // Input States
   const [age, setAge] = useState('');
@@ -30,30 +34,79 @@ export default function SetupScreen({ onProfileSaved, onGoBack }) {
   // Goal Selection (bulk, cut, maintain)
   const [goal, setGoal] = useState('maintain');
 
-  const pickProfileImage = async () => {
+  const pickAndUploadImage = async () => {
     try {
-      // Request permissions
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
-      if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Please allow access to your photo library');
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
+      // 1. Pick the Image
+      let result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.7,
+        quality: 0.5,
       });
 
       if (!result.canceled) {
-        setProfileImage(result.assets[0].uri);
-        console.log('Image selected:', result.assets[0].uri);
+        setUploading(true);
+        const imgUri = result.assets[0].uri;
+        setProfileImage(imgUri); // Show preview immediately
+
+        // 2. Read the file as Base64
+        // CORRECT WAY:
+const base64 = await FileSystem.readAsStringAsync(imgUri, {
+  encoding: 'base64', // <--- Lowercase string, no 'FileSystem.EncodingType'
+});
+
+        // 3. Generate a clean file path
+        const fileExt = imgUri.split('.').pop().toLowerCase();
+        const fileName = `${Date.now()}.${fileExt}`;
+        const filePath = `${fileName}`;
+        
+        // Determine correct content type
+        const contentType = fileExt === 'png' ? 'image/png' : 'image/jpeg';
+
+        // 4. Upload the decoded Base64 data to Supabase
+        const { data, error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(filePath, decode(base64), {
+            contentType: contentType,
+          });
+
+        if (uploadError) throw uploadError;
+
+        // 5. Get Public URL
+        const { data: urlData } = supabase.storage
+          .from('avatars')
+          .getPublicUrl(filePath);
+
+        const publicUrl = urlData.publicUrl;
+        console.log('📸 Public URL generated:', publicUrl);
+        setProfileImage(publicUrl); // Update to show uploaded URL
+
+        // 6. Save URL to User Profile
+        const { data: { user } } = await supabase.auth.getUser();
+        console.log('👤 Current user:', user?.id);
+        
+        if (user) {
+          console.log('💾 Saving image URL to profile...');
+          const { data, error: updateError } = await supabase
+            .from('profiles')
+            .update({ profile_image_url: publicUrl })
+            .eq('id', user.id);
+
+          console.log('✅ Update response:', { data, error: updateError });
+          
+          if (updateError) {
+            console.error('❌ Update error:', updateError);
+            throw updateError;
+          }
+          
+          Alert.alert('Success', 'Profile picture uploaded successfully!');
+        }
       }
     } catch (error) {
-      console.error('Image picker error:', error);
-      Alert.alert("Error", "Failed to pick image: " + error.message);
+      console.error("Upload failed:", error);
+      Alert.alert('Upload Failed', 'Upload failed: ' + (error.message || "Unknown error"));
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -71,33 +124,18 @@ export default function SetupScreen({ onProfileSaved, onGoBack }) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No user found");
 
-      // 3. For now, store the local URI as profile_image_url
-      // TODO: Implement proper cloud storage upload later
-      let imageUrl = null;
-      if (profileImage) {
-        // Store local URI for now - in production, upload to cloud storage
-        imageUrl = profileImage;
-        console.log('Using local image URI:', imageUrl);
-      }
-
-      // 4. Update Profile in Supabase
-      const updateData = {
-        age: parseInt(age),
-        height: parseFloat(height),
-        current_weight: parseFloat(currentWeight),
-        target_weight: parseFloat(targetWeight),
-        goal_mode: goal,
-        number_of_meals: parseInt(mealsPerDay),
-        updated_at: new Date(),
-      };
-
-      if (imageUrl) {
-        updateData.profile_image_url = imageUrl;
-      }
-
+      // 3. Update Profile in Supabase (image URL already saved via pickAndUploadImage)
       const { error } = await supabase
         .from('profiles')
-        .update(updateData)
+        .update({
+          age: parseInt(age),
+          height: parseFloat(height),
+          current_weight: parseFloat(currentWeight),
+          target_weight: parseFloat(targetWeight),
+          goal_mode: goal,
+          number_of_meals: parseInt(mealsPerDay),
+          updated_at: new Date(),
+        })
         .eq('id', user.id);
 
       if (error) {
@@ -185,7 +223,11 @@ export default function SetupScreen({ onProfileSaved, onGoBack }) {
           
           {/* Profile Image Section */}
           <View style={styles.imageSection}>
-            <TouchableOpacity style={styles.imagePickerBtn} onPress={pickProfileImage}>
+            <TouchableOpacity 
+              style={styles.imagePickerBtn} 
+              onPress={pickAndUploadImage}
+              disabled={uploading}
+            >
               {profileImage ? (
                 <Image source={{ uri: profileImage }} style={styles.profileImagePreview} />
               ) : (
@@ -194,11 +236,12 @@ export default function SetupScreen({ onProfileSaved, onGoBack }) {
                   <Text style={styles.imagePickerSubtext}>Tap to select your image</Text>
                 </>
               )}
+              {uploading && <ActivityIndicator color="#FF8C00" style={{ position: 'absolute' }} />}
             </TouchableOpacity>
-            {profileImage && (
+            {profileImage && !uploading && (
               <TouchableOpacity 
                 style={styles.changeImageBtn} 
-                onPress={pickProfileImage}
+                onPress={pickAndUploadImage}
               >
                 <Text style={styles.changeImageText}>Change Photo</Text>
               </TouchableOpacity>

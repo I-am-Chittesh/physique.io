@@ -34,6 +34,10 @@ export default function ProfileScreen({ onBack }) {
         .eq('id', user.id)
         .single();
       
+      console.log('✅ ProfileScreen fetched:', {
+        full_name: profile?.full_name,
+        profile_image_url: profile?.profile_image_url
+      });
       setUserData(profile);
 
       // 2. Fetch last 30 days of logs for the grid

@@ -70,6 +70,8 @@ const ProfileCard = ({ name, currentWeight, targetWeight, streak, onIconPress, p
   const displayTargetWeight = targetWeight !== null && targetWeight !== undefined ? targetWeight : '-';
   const displayStreak = streak || 0;
 
+  console.log('🎨 ProfileCard rendered with imageUrl:', profileImageUrl);
+
   return (
     <View style={styles.profileCard}>
       {/* Settings Button */}
@@ -154,8 +156,10 @@ export default function DashboardScreen({ onLogClick, onProfileClick }) {
         console.error('Profile fetch error:', profileError);
         setProfile(null);
       } else if (profileData) {
-        console.log('Profile data fetched successfully:', profileData);
-        console.log('Profile Image URL:', profileData.profile_image_url);
+        console.log('✅ Profile fetched:', {
+          full_name: profileData.full_name,
+          profile_image_url: profileData.profile_image_url
+        });
         setProfile(profileData);
       } else {
         setProfile(null);
