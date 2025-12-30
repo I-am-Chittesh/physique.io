@@ -9,9 +9,11 @@ import {
   ActivityIndicator,
   ScrollView,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  Image
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../supabase';
 
 export default function SetupScreen({ onProfileSaved, onGoBack }) {
@@ -23,9 +25,27 @@ export default function SetupScreen({ onProfileSaved, onGoBack }) {
   const [currentWeight, setCurrentWeight] = useState('');
   const [targetWeight, setTargetWeight] = useState('');
   const [mealsPerDay, setMealsPerDay] = useState('3'); // Default 3 meals
+  const [profileImage, setProfileImage] = useState(null);
   
   // Goal Selection (bulk, cut, maintain)
   const [goal, setGoal] = useState('maintain');
+
+  const pickProfileImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        setProfileImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      Alert.alert("Error", "Failed to pick image");
+    }
+  };
 
   async function handleSaveProfile() {
     // 1. Validation
@@ -41,18 +61,53 @@ export default function SetupScreen({ onProfileSaved, onGoBack }) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No user found");
 
-      // 3. Update Profile in Supabase
+      // 3. Upload profile image if exists
+      let imageUrl = null;
+      if (profileImage) {
+        try {
+          const fileName = `${user.id}-${Date.now()}.jpg`;
+          const response = await fetch(profileImage);
+          const blob = await response.blob();
+          
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('profile-images')
+            .upload(fileName, blob, { 
+              cacheControl: '3600',
+              upsert: false 
+            });
+          
+          if (!uploadError && uploadData) {
+            const { data: publicUrl } = supabase.storage
+              .from('profile-images')
+              .getPublicUrl(fileName);
+            imageUrl = publicUrl.publicUrl;
+            console.log('Image uploaded successfully:', imageUrl);
+          } else {
+            console.log('Upload error:', uploadError?.message);
+          }
+        } catch (error) {
+          console.log("Image upload error:", error);
+        }
+      }
+
+      // 4. Update Profile in Supabase
+      const updateData = {
+        age: parseInt(age),
+        height: parseFloat(height),
+        current_weight: parseFloat(currentWeight),
+        target_weight: parseFloat(targetWeight),
+        goal_mode: goal,
+        number_of_meals: parseInt(mealsPerDay),
+        updated_at: new Date(),
+      };
+
+      if (imageUrl) {
+        updateData.profile_image_url = imageUrl;
+      }
+
       const { error } = await supabase
         .from('profiles')
-        .update({
-          age: parseInt(age),
-          height: parseFloat(height),
-          current_weight: parseFloat(currentWeight),
-          target_weight: parseFloat(targetWeight),
-          goal_mode: goal,
-          number_of_meals: parseInt(mealsPerDay),
-          updated_at: new Date(),
-        })
+        .update(updateData)
         .eq('id', user.id);
 
       if (error) {
@@ -137,6 +192,28 @@ export default function SetupScreen({ onProfileSaved, onGoBack }) {
 
         {/* FORM INPUTS */}
         <View style={styles.form}>
+          
+          {/* Profile Image Section */}
+          <View style={styles.imageSection}>
+            <TouchableOpacity style={styles.imagePickerBtn} onPress={pickProfileImage}>
+              {profileImage ? (
+                <Image source={{ uri: profileImage }} style={styles.profileImagePreview} />
+              ) : (
+                <>
+                  <Text style={styles.imagePickerText}>📸 Add Profile Photo</Text>
+                  <Text style={styles.imagePickerSubtext}>Tap to select your image</Text>
+                </>
+              )}
+            </TouchableOpacity>
+            {profileImage && (
+              <TouchableOpacity 
+                style={styles.changeImageBtn} 
+                onPress={pickProfileImage}
+              >
+                <Text style={styles.changeImageText}>Change Photo</Text>
+              </TouchableOpacity>
+            )}
+          </View>
           
           {/* Row 1: Age & Height */}
           <View style={styles.row}>
@@ -430,5 +507,50 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: '900',
+  },
+  imageSection: {
+    gap: 12,
+  },
+  imagePickerBtn: {
+    backgroundColor: 'rgba(255, 140, 0, 0.1)',
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 140, 0, 0.3)',
+    borderStyle: 'dashed',
+    paddingVertical: 32,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 160,
+  },
+  profileImagePreview: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+  },
+  imagePickerText: {
+    color: '#FF8C00',
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  imagePickerSubtext: {
+    color: '#a8b5c9',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  changeImageBtn: {
+    backgroundColor: 'rgba(255, 140, 0, 0.15)',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 140, 0, 0.3)',
+    alignItems: 'center',
+  },
+  changeImageText: {
+    color: '#FF8C00',
+    fontWeight: '700',
+    fontSize: 13,
   },
 });

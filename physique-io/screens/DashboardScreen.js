@@ -7,11 +7,14 @@ import {
   ScrollView, 
   ActivityIndicator,
   RefreshControl, 
-  Dimensions 
+  Dimensions,
+  Animated,
+  Image
 } from 'react-native';
 import { supabase } from '../supabase';
 import Svg, { Circle, G } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { width } = Dimensions.get('window');
 
@@ -60,25 +63,55 @@ const ProgressRing = ({ radius, stroke, progress, target, consumed }) => {
   );
 };
 
-// --- COMPONENT: GLASS PROFILE CARD ---
-// Add 'onIconPress' to props
-const GlassHeader = ({ name, goal, onIconPress }) => (
-  <View style={styles.glassCard}>
-    <View style={styles.glassContent}>
-      <View style={styles.avatarCircle}>
-        <Text style={styles.avatarText}>{name ? name.charAt(0) : 'U'}</Text>
+// --- COMPONENT: BASIC PROFILE CARD ---
+const ProfileCard = ({ name, currentWeight, targetWeight, streak, onIconPress, profileImageUrl }) => {
+  const displayName = name || 'User';
+  const displayCurrentWeight = currentWeight !== null && currentWeight !== undefined ? currentWeight : '-';
+  const displayTargetWeight = targetWeight !== null && targetWeight !== undefined ? targetWeight : '-';
+  const displayStreak = streak || 0;
+
+  return (
+    <View style={styles.profileCard}>
+      {/* Settings Button */}
+      <TouchableOpacity style={styles.settingsBtn} onPress={onIconPress}>
+        <Ionicons name="settings-outline" size={20} color="#FF8C00" />
+      </TouchableOpacity>
+
+      {/* Avatar and Name */}
+      <View style={styles.profileTop}>
+        <View style={styles.avatar}>
+          {profileImageUrl ? (
+            <Image 
+              source={{ uri: profileImageUrl }} 
+              style={styles.avatarImage}
+            />
+          ) : (
+            <Text style={styles.avatarInitial}>{displayName.charAt(0).toUpperCase()}</Text>
+          )}
+        </View>
+        <View style={styles.nameInfo}>
+          <Text style={styles.userName}>{displayName}</Text>
+          <Text style={styles.userSubtitle}>Fitness Tracker</Text>
+        </View>
       </View>
-      <View>
-        <Text style={styles.welcomeText}>Hello, {name}</Text>
-        <Text style={styles.goalText}>Current Goal: {goal ? goal.toUpperCase() : 'LOADING...'}</Text>
+
+      {/* Stats Row */}
+      <View style={styles.profileStats}>
+        <View style={styles.statItem}>
+          <Text style={styles.statItemLabel}>Goal Prog</Text>
+          <Text style={styles.statItemValue}>{displayCurrentWeight}kg</Text>
+          <Text style={styles.statItemSub}>→ {displayTargetWeight}kg</Text>
+        </View>
+        <View style={styles.statItem}>
+          <Text style={styles.statItemLabel}>Streak</Text>
+          <Text style={styles.statItemValue}>{displayStreak}</Text>
+          <Text style={styles.statItemSub}>days 🔥</Text>
+        </View>
       </View>
     </View>
-    {/* Update this TouchableOpacity */}
-    <TouchableOpacity onPress={onIconPress}>
-      <Ionicons name="settings-outline" size={24} color="rgba(255,255,255,0.6)" />
-    </TouchableOpacity>
-  </View>
-);
+  );
+};
+
 // --- MAIN SCREEN ---
 // Add 'onProfileClick' to props
 export default function DashboardScreen({ onLogClick, onProfileClick }) {
@@ -86,9 +119,10 @@ export default function DashboardScreen({ onLogClick, onProfileClick }) {
   const [refreshing, setRefreshing] = useState(false);
   
   // Data States
-  const [profile, setProfile] = useState({ full_name: '', goal_mode: '' });
+  const [profile, setProfile] = useState(null);
   const [targets, setTargets] = useState([]); // Array of planned meals
   const [logs, setLogs] = useState([]);       // Array of eaten meals
+  const [streak, setStreak] = useState(0);    // Streak days
   
   // Calculated States
   const [totalTarget, setTotalTarget] = useState(1);
@@ -102,40 +136,85 @@ export default function DashboardScreen({ onLogClick, onProfileClick }) {
   const fetchDashboardData = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        console.log('No user found');
+        return;
+      }
 
       const today = new Date().toISOString().split('T')[0];
 
-      // A. Fetch Profile
-      const { data: profileData } = await supabase
+      // A. Fetch Profile - fetch all available fields
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('full_name, goal_mode')
+        .select('*')
         .eq('id', user.id)
         .single();
       
-      if (profileData) setProfile(profileData);
+      if (profileError) {
+        console.error('Profile fetch error:', profileError);
+        setProfile(null);
+      } else if (profileData) {
+        console.log('Profile data fetched successfully:', profileData);
+        console.log('Profile Image URL:', profileData.profile_image_url);
+        setProfile(profileData);
+      } else {
+        setProfile(null);
+      }
 
       // B. Fetch Diet Targets
-      const { data: targetData } = await supabase
+      const { data: targetData, error: targetError } = await supabase
         .from('diet_targets')
         .select('*')
         .eq('user_id', user.id)
         .order('meal_number', { ascending: true });
       
-      if (targetData) setTargets(targetData);
+      if (targetError) {
+        console.log('Targets fetch error:', targetError);
+      } else {
+        setTargets(targetData || []);
+      }
 
       // C. Fetch Today's Logs
-      // Note: We filter logs where created_at starts with today's date
-      const { data: logData } = await supabase
+      const { data: logData, error: logError } = await supabase
         .from('meal_logs')
         .select('*')
         .eq('user_id', user.id)
         .gte('logged_at', `${today}T00:00:00`)
         .lte('logged_at', `${today}T23:59:59`);
         
-      if (logData) setLogs(logData);
+      if (logError) {
+        console.log('Logs fetch error:', logError);
+      } else {
+        setLogs(logData || []);
+      }
 
-      // D. Calculations
+      // D. Calculate Streak (consecutive days with logs)
+      const { data: allLogs, error: allLogsError } = await supabase
+        .from('meal_logs')
+        .select('logged_at')
+        .eq('user_id', user.id)
+        .order('logged_at', { ascending: false });
+
+      let streakCount = 0;
+      if (!allLogsError && allLogs && allLogs.length > 0) {
+        const dates = allLogs.map(log => log.logged_at.split('T')[0]);
+        const uniqueDates = [...new Set(dates)];
+        
+        const todayDate = new Date(today);
+        for (let i = 0; i < uniqueDates.length; i++) {
+          const logDate = new Date(uniqueDates[i]);
+          const diffDays = Math.floor((todayDate - logDate) / (1000 * 60 * 60 * 24));
+          
+          if (diffDays === i) {
+            streakCount = i + 1;
+          } else {
+            break;
+          }
+        }
+      }
+      setStreak(streakCount);
+
+      // E. Calculations
       const tTarget = targetData?.reduce((sum, item) => sum + item.target_calories, 0) || 1;
       const tConsumed = logData?.reduce((sum, item) => sum + item.calories_consumed, 0) || 0;
       
@@ -175,10 +254,13 @@ export default function DashboardScreen({ onLogClick, onProfileClick }) {
     <View style={styles.container}>
       {/* 1. GLASS PROFILE HEADER */}
       <View style={styles.headerContainer}>
-        <GlassHeader 
-          name={profile.full_name} 
-          goal={profile.goal_mode} 
+        <ProfileCard 
+          name={profile?.full_name} 
+          currentWeight={profile?.current_weight}
+          targetWeight={profile?.target_weight}
+          streak={streak}
           onIconPress={onProfileClick}
+          profileImageUrl={profile?.profile_image_url}
         />
       </View>
 
@@ -187,24 +269,51 @@ export default function DashboardScreen({ onLogClick, onProfileClick }) {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#FF8C00"/>}
       >
         
-        {/* 2. HERO SECTION: PROGRESS RING */}
+        {/* 2. HERO SECTION: PROGRESS RING + STATS */}
         <View style={styles.heroSection}>
+          {/* CENTER: Progress Ring */}
           <ProgressRing 
-            radius={80} 
-            stroke={12} 
+            radius={104} 
+            stroke={14} 
             progress={progressPercent} 
             target={totalTarget} 
             consumed={totalConsumed} 
           />
-          <View style={styles.statRow}>
-            <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Eaten</Text>
-              <Text style={styles.statValue}>{totalConsumed}</Text>
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Target</Text>
-              <Text style={styles.statValue}>{totalTarget}</Text>
+
+          {/* BELOW: All Stats in Single Rounded Box */}
+          <View
+            style={styles.statsBoxGradient}
+          >
+            <View style={styles.statsBox}>
+              {/* Goal Mode */}
+              <View style={styles.statBoxItem}>
+                <Text style={styles.statBoxLabel}>Goal</Text>
+                <Text style={styles.statBoxValue}>{profile?.goal_mode ? profile.goal_mode.toUpperCase() : 'BULK'}</Text>
+              </View>
+
+              {/* Divider */}
+              <View style={styles.statBoxDivider} />
+
+              {/* Eaten */}
+              <View style={styles.statBoxItem}>
+                <Text style={styles.statBoxLabel}>Eaten</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+                  <Text style={styles.statBoxValue}>{totalConsumed}</Text>
+                  <Text style={styles.statBoxUnit}>kcal</Text>
+                </View>
+              </View>
+
+              {/* Divider */}
+              <View style={styles.statBoxDivider} />
+
+              {/* Target */}
+              <View style={styles.statBoxItem}>
+                <Text style={styles.statBoxLabel}>Target</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+                  <Text style={styles.statBoxValue}>{totalTarget}</Text>
+                  <Text style={styles.statBoxUnit}>kcal</Text>
+                </View>
+              </View>
             </View>
           </View>
         </View>
@@ -281,49 +390,312 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 20,
   },
-  // Glassmorphism Styles
-  glassCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)', // Transparent White
-    borderRadius: 20,
-    padding: 15,
+  // NEW PROFILE CARD STYLES
+  profileCard: {
+    backgroundColor: '#112240',
+    borderRadius: 16,
+    padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: '#233554',
+    gap: 16,
   },
-  glassContent: {
+  settingsBtn: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 140, 0, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 140, 0, 0.2)',
+  },
+  profileTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 15,
+    gap: 12,
+    marginTop: 8,
   },
-  avatarCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+  avatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: '#FF8C00',
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
   },
-  avatarText: {
+  avatarImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+  },
+  avatarInitial: {
     color: '#fff',
-    fontSize: 20,
+    fontSize: 26,
     fontWeight: 'bold',
   },
-  welcomeText: {
+  nameInfo: {
+    gap: 4,
+  },
+  userName: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
   },
-  goalText: {
-    color: 'rgba(255, 255, 255, 0.6)',
+  userSubtitle: {
+    color: '#a8b5c9',
     fontSize: 12,
+    fontWeight: '600',
+  },
+  profileStats: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  statItem: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+  },
+  statItemLabel: {
+    color: '#a8b5c9',
+    fontSize: 8.4,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  statItemValue: {
+    color: '#FF8C00',
+    fontSize: 13.5,
+    fontWeight: 'bold',
+  },
+  statItemSub: {
+    color: '#667085',
+    fontSize: 7.5,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  settingsButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 140, 0, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 140, 0, 0.2)',
+  },
+  avatarSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  avatarCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FF8C00',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#FF8C00',
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  avatarText: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: '900',
+  },
+  nameSection: {
+    gap: 2,
+    flex: 1,
+  },
+  welcomeName: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    color: '#a8b5c9',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  headerStatsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  headerStatBox: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+  },
+  headerStatLabel: {
+    color: '#a8b5c9',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    marginBottom: 6,
+  },
+  headerStatValue: {
+    color: '#FF8C00',
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: -0.5,
+  },
+  headerStatSubtitle: {
+    color: '#667085',
+    fontSize: 10,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  statBox: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+  },
+  statLabel: {
+    color: '#a8b5c9',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  statValue: {
+    color: '#FF8C00',
+    fontSize: 20,
+    fontWeight: '900',
+    letterSpacing: -0.5,
+  },
+  statSubtitle: {
+    color: '#667085',
+    fontSize: 10,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  statExtra: {
+    color: '#FF8C00',
+    fontSize: 10,
+    fontWeight: '700',
+    marginTop: 4,
+    letterSpacing: 0.3,
+  },
+  weightDiff: {
+    fontSize: 11,
+    fontWeight: '700',
+    marginTop: 4,
+    letterSpacing: 0.3,
+  },
+  weightDiffPositive: {
+    color: '#7ED321',
+  },
+  weightDiffNegative: {
+    color: '#FF6B6B',
   },
   // Hero Section
   heroSection: {
     alignItems: 'center',
     marginTop: 10,
     marginBottom: 30,
+    paddingHorizontal: 20,
+    gap: 20,
+    width: '100%',
+  },
+  heroBottom: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  goalModeTextBoxGradient: {
+    borderRadius: 14,
+    padding: 0,
+    overflow: 'hidden',
+    flex: 1,
+  },
+  goalModeTextBox: {
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 140, 0, 0.2)',
+    alignItems: 'center',
+  },
+  goalModeLabel: {
+    color: '#a8b5c9',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    marginBottom: 8,
+  },
+  goalModeValue: {
+    color: '#FF8C00',
+    fontSize: 22,
+    fontWeight: '900',
+    letterSpacing: 1,
+  },
+  statsBoxGradient: {
+    borderRadius: 14,
+    padding: 0,
+    overflow: 'hidden',
+    width: '100%',
+    marginTop: 10,
+  },
+  statsBox: {
+    backgroundColor: 'rgba(17, 34, 64, 0.8)',
+    borderRadius: 14,
+    paddingVertical: 4,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: '#233554',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    width: '100%',
+  },
+  statBoxItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statBoxLabel: {
+    color: '#a8b5c9',
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+    marginBottom: 3,
+  },
+  statBoxValue: {
+    color: '#FF8C00',
+    fontSize: 15,
+    fontWeight: '900',
+    letterSpacing: -0.3,
+  },
+  statBoxUnit: {
+    color: '#667085',
+    fontSize: 8,
+    fontWeight: '600',
+    marginLeft: 2,
+  },
+  statBoxDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: '#233554',
   },
   ringContainer: {
     justifyContent: 'center',
@@ -345,33 +717,14 @@ const styles = StyleSheet.create({
   },
   statRow: {
     flexDirection: 'row',
-    marginTop: 20,
-    backgroundColor: '#112240',
-    borderRadius: 15,
-    paddingVertical: 10,
-    paddingHorizontal: 30,
-    borderWidth: 1,
-    borderColor: '#233554',
-  },
-  statItem: {
-    alignItems: 'center',
-    width: 80,
+    gap: 12,
+    width: '100%',
   },
   divider: {
     width: 1,
     height: '100%',
     backgroundColor: '#233554',
     marginHorizontal: 15,
-  },
-  statLabel: {
-    color: '#8892b0',
-    fontSize: 12,
-    marginBottom: 4,
-  },
-  statValue: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
   },
   // List Section
   scrollContent: {
@@ -408,9 +761,9 @@ const styles = StyleSheet.create({
     gap: 15,
   },
   iconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 50,
+    height: 50,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
   },

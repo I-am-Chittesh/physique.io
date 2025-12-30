@@ -6,7 +6,8 @@ import {
   TouchableOpacity, 
   ScrollView, 
   ActivityIndicator,
-  Alert 
+  Alert,
+  Image
 } from 'react-native';
 import { supabase } from '../supabase';
 import { Ionicons } from '@expo/vector-icons';
@@ -115,7 +116,14 @@ export default function ProfileScreen({ onBack }) {
 
       <View style={styles.header}>
         <View style={styles.avatar}>
-           <Text style={styles.avatarText}>{userData?.full_name?.charAt(0)}</Text>
+          {userData?.profile_image_url ? (
+            <Image 
+              source={{ uri: userData.profile_image_url }} 
+              style={styles.avatarImage}
+            />
+          ) : (
+            <Text style={styles.avatarText}>{userData?.full_name?.charAt(0)}</Text>
+          )}
         </View>
         <Text style={styles.name}>{userData?.full_name}</Text>
         <Text style={styles.subText}>{userData?.goal_mode?.toUpperCase()}</Text>
@@ -163,8 +171,9 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0A192F', padding: 20 },
   center: { flex: 1, backgroundColor: '#0A192F', justifyContent: 'center', alignItems: 'center' },
   header: { alignItems: 'center', marginTop: 40, marginBottom: 30 },
-  avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#FF8C00', justifyContent: 'center', alignItems: 'center', marginBottom: 15 },
-  avatarText: { color: '#fff', fontSize: 32, fontWeight: 'bold' },
+  avatar: { width: 120, height: 120, borderRadius: 60, backgroundColor: '#FF8C00', justifyContent: 'center', alignItems: 'center', marginBottom: 15, overflow: 'hidden' },
+  avatarImage: { width: 120, height: 120, borderRadius: 60 },
+  avatarText: { color: '#fff', fontSize: 48, fontWeight: 'bold' },
   name: { color: '#fff', fontSize: 24, fontWeight: 'bold' },
   subText: { color: '#8892b0', fontSize: 14, letterSpacing: 1, marginTop: 5 },
   statsRow: { flexDirection: 'row', gap: 10, marginBottom: 30 },
