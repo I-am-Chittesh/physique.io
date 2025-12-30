@@ -32,18 +32,28 @@ export default function SetupScreen({ onProfileSaved, onGoBack }) {
 
   const pickProfileImage = async () => {
     try {
+      // Request permissions
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Please allow access to your photo library');
+        return;
+      }
+
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.8,
+        quality: 0.7,
       });
 
       if (!result.canceled) {
         setProfileImage(result.assets[0].uri);
+        console.log('Image selected:', result.assets[0].uri);
       }
     } catch (error) {
-      Alert.alert("Error", "Failed to pick image");
+      console.error('Image picker error:', error);
+      Alert.alert("Error", "Failed to pick image: " + error.message);
     }
   };
 
@@ -61,33 +71,13 @@ export default function SetupScreen({ onProfileSaved, onGoBack }) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No user found");
 
-      // 3. Upload profile image if exists
+      // 3. For now, store the local URI as profile_image_url
+      // TODO: Implement proper cloud storage upload later
       let imageUrl = null;
       if (profileImage) {
-        try {
-          const fileName = `${user.id}-${Date.now()}.jpg`;
-          const response = await fetch(profileImage);
-          const blob = await response.blob();
-          
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('profile-images')
-            .upload(fileName, blob, { 
-              cacheControl: '3600',
-              upsert: false 
-            });
-          
-          if (!uploadError && uploadData) {
-            const { data: publicUrl } = supabase.storage
-              .from('profile-images')
-              .getPublicUrl(fileName);
-            imageUrl = publicUrl.publicUrl;
-            console.log('Image uploaded successfully:', imageUrl);
-          } else {
-            console.log('Upload error:', uploadError?.message);
-          }
-        } catch (error) {
-          console.log("Image upload error:", error);
-        }
+        // Store local URI for now - in production, upload to cloud storage
+        imageUrl = profileImage;
+        console.log('Using local image URI:', imageUrl);
       }
 
       // 4. Update Profile in Supabase
