@@ -36,6 +36,14 @@ export default function SetupScreen({ onProfileSaved, onGoBack }) {
 
   const pickAndUploadImage = async () => {
     try {
+      // Request permissions before opening image picker
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert('Permission required', 'We need access to your photo library to upload a profile picture.');
+        return;
+      }
+
       // 1. Pick the Image
       let result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
@@ -70,7 +78,10 @@ const base64 = await FileSystem.readAsStringAsync(imgUri, {
             contentType: contentType,
           });
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          throw uploadError;
+        }
 
         // 5. Get Public URL
         const { data: urlData } = supabase.storage
@@ -79,27 +90,30 @@ const base64 = await FileSystem.readAsStringAsync(imgUri, {
 
         const publicUrl = urlData.publicUrl;
         console.log('📸 Public URL generated:', publicUrl);
-        setProfileImage(publicUrl); // Update to show uploaded URL
-
-        // 6. Save URL to User Profile
+        
+        // 6. Save URL to User Profile immediately after upload
         const { data: { user } } = await supabase.auth.getUser();
         console.log('👤 Current user:', user?.id);
         
         if (user) {
           console.log('💾 Saving image URL to profile...');
-          const { data, error: updateError } = await supabase
+          const { data: updateData, error: updateError } = await supabase
             .from('profiles')
             .update({ profile_image_url: publicUrl })
             .eq('id', user.id);
 
-          console.log('✅ Update response:', { data, error: updateError });
+          console.log('✅ Update response:', { data: updateData, error: updateError });
           
           if (updateError) {
-            console.error('❌ Update error:', updateError);
+            console.error('❌ Profile update error:', updateError);
             throw updateError;
           }
           
+          // Update state after successful database update
+          setProfileImage(publicUrl);
           Alert.alert('Success', 'Profile picture uploaded successfully!');
+        } else {
+          throw new Error('No authenticated user found');
         }
       }
     } catch (error) {
@@ -122,32 +136,51 @@ const base64 = await FileSystem.readAsStringAsync(imgUri, {
     try {
       // 2. Get Current User ID
       const { data: { user } } = await supabase.auth.getUser();
+      console.log("🔐 User ID:", user?.id);
       if (!user) throw new Error("No user found");
 
       // 3. Update Profile in Supabase (image URL already saved via pickAndUploadImage)
-      const { error } = await supabase
+      const updateData = {
+        id: user.id,
+        age: parseInt(age),
+        height: parseFloat(height),
+        current_weight: parseFloat(currentWeight),
+        target_weight: parseFloat(targetWeight),
+        goal_mode: goal,
+        number_of_meals: parseInt(mealsPerDay),
+        updated_at: new Date(),
+      };
+
+      // Only include profile_image_url if it's a public URL (from successful upload)
+      // Don't include local file URIs
+      if (profileImage && profileImage.startsWith('http')) {
+        updateData.profile_image_url = profileImage;
+      }
+
+      const { data, error } = await supabase
         .from('profiles')
-        .update({
-          age: parseInt(age),
-          height: parseFloat(height),
-          current_weight: parseFloat(currentWeight),
-          target_weight: parseFloat(targetWeight),
-          goal_mode: goal,
-          number_of_meals: parseInt(mealsPerDay),
-          updated_at: new Date(),
-        })
-        .eq('id', user.id);
+        .upsert(updateData);
+
+      console.log("📤 Update response - Data:", data, "Error:", error);
+      console.log("📸 Saving profile_image_url:", profileImage);
 
       if (error) {
         throw error;
       } 
       
       // Success! Notify App.js to re-check status
-      console.log("Profile Updated Successfully");
-      onProfileSaved();
+      console.log("✅ Profile Updated Successfully");
+      Alert.alert("Success", "Profile saved! Loading next screen...");
+      
+      // Small delay to ensure data is persisted
+      setTimeout(() => {
+        console.log("📱 Calling onProfileSaved callback");
+        onProfileSaved?.();
+      }, 500);
 
     } catch (error) {
-      Alert.alert("Save Error", error.message);
+      console.error("❌ Save Error:", error);
+      Alert.alert("Save Error", error.message || "Failed to save profile");
     } finally {
       setLoading(false);
     }

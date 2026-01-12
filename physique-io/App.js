@@ -50,27 +50,44 @@ export default function App() {
 
   async function checkUserStatus(userId) {
     try {
-      const { data: profile } = await supabase
+      console.log("🔍 Checking user status for:", userId);
+      
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('age')
+        .select('age, id')
         .eq('id', userId)
         .single();
 
+      console.log("📋 Profile data:", profile, "Error:", profileError);
+
+      if (profileError && profileError.code !== 'PGRST116') {
+        // PGRST116 is "no rows returned" - which is expected if profile doesn't exist
+        throw profileError;
+      }
+
       if (profile && profile.age) {
+        console.log("✅ User has profile data with age:", profile.age);
         setHasProfileData(true);
         
-        const { data: targets } = await supabase
+        const { data: targets, error: targetsError } = await supabase
           .from('diet_targets')
           .select('id')
           .eq('user_id', userId)
           .limit(1);
+        
+        console.log("🎯 Diet targets:", targets, "Error:", targetsError);
           
         if (targets && targets.length > 0) {
+          console.log("✅ User has diet chart");
           setHasDietChart(true);
+        } else {
+          console.log("⏳ User needs to create diet chart");
         }
+      } else {
+        console.log("⏳ User needs to complete profile setup");
       }
     } catch (error) {
-      console.log("Check Status Error:", error);
+      console.error("❌ Check Status Error:", error);
     } finally {
       setLoading(false);
     }

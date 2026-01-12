@@ -28,17 +28,24 @@ export default function ProfileScreen({ onBack }) {
       if (!user) return;
 
       // 1. Fetch Profile Stats
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single();
       
       console.log('✅ ProfileScreen fetched:', {
-        full_name: profile?.full_name,
-        profile_image_url: profile?.profile_image_url
+        age: profile?.age,
+        current_weight: profile?.current_weight,
+        target_weight: profile?.target_weight,
+        goal_mode: profile?.goal_mode,
+        profile_image_url: profile?.profile_image_url,
+        error: profileError
       });
-      setUserData(profile);
+
+      if (!profileError) {
+        setUserData(profile);
+      }
 
       // 2. Fetch last 30 days of logs for the grid
       const thirtyDaysAgo = new Date();
@@ -107,6 +114,10 @@ export default function ProfileScreen({ onBack }) {
   if (loading) return <View style={styles.center}><ActivityIndicator color="#FF8C00" /></View>;
 
   const weightDiff = userData ? (userData.target_weight - userData.current_weight).toFixed(1) : 0;
+  const getUserInitial = () => {
+    const { data: { user } } = supabase.auth.getUser();
+    return user?.email?.charAt(0)?.toUpperCase() || '?';
+  };
 
   return (
     <ScrollView style={styles.container}>
@@ -126,26 +137,26 @@ export default function ProfileScreen({ onBack }) {
               style={styles.avatarImage}
             />
           ) : (
-            <Text style={styles.avatarText}>{userData?.full_name?.charAt(0)}</Text>
+            <Text style={styles.avatarText}>{userData?.age || '?'}</Text>
           )}
         </View>
-        <Text style={styles.name}>{userData?.full_name}</Text>
-        <Text style={styles.subText}>{userData?.goal_mode?.toUpperCase()}</Text>
+        <Text style={styles.name}>{userData?.age || 'User'} years old</Text>
+        <Text style={styles.subText}>{userData?.goal_mode?.toUpperCase() || 'MAINTAIN'}</Text>
       </View>
 
       {/* WEIGHT PROGRESS CARD */}
       <View style={styles.statsRow}>
         <View style={styles.statCard}>
           <Text style={styles.statLabel}>Current</Text>
-          <Text style={styles.statVal}>{userData?.current_weight}kg</Text>
+          <Text style={styles.statVal}>{userData?.current_weight || '0'}kg</Text>
         </View>
         <View style={styles.statCard}>
           <Text style={styles.statLabel}>Target</Text>
-          <Text style={styles.statVal}>{userData?.target_weight}kg</Text>
+          <Text style={styles.statVal}>{userData?.target_weight || '0'}kg</Text>
         </View>
         <View style={styles.statCard}>
           <Text style={styles.statLabel}>Remaining</Text>
-          <Text style={[styles.statVal, {color: '#FF8C00'}]}>{Math.abs(weightDiff)}kg</Text>
+          <Text style={[styles.statVal, {color: '#FF8C00'}]}>{Math.abs(weightDiff) || '0'}kg</Text>
         </View>
       </View>
 

@@ -65,12 +65,18 @@ const ProgressRing = ({ radius, stroke, progress, target, consumed }) => {
 
 // --- COMPONENT: BASIC PROFILE CARD ---
 const ProfileCard = ({ name, currentWeight, targetWeight, streak, onIconPress, profileImageUrl }) => {
-  const displayName = name || 'User';
-  const displayCurrentWeight = currentWeight !== null && currentWeight !== undefined ? currentWeight : '-';
-  const displayTargetWeight = targetWeight !== null && targetWeight !== undefined ? targetWeight : '-';
-  const displayStreak = streak || 0;
+  const displayName = name && typeof name === 'string' ? name.trim() : 'User';
+  const displayCurrentWeight = currentWeight !== null && currentWeight !== undefined ? Math.round(currentWeight * 10) / 10 : '-';
+  const displayTargetWeight = targetWeight !== null && targetWeight !== undefined ? Math.round(targetWeight * 10) / 10 : '-';
+  const displayStreak = streak && typeof streak === 'number' ? streak : 0;
 
-  console.log('🎨 ProfileCard rendered with imageUrl:', profileImageUrl);
+  console.log('🎨 ProfileCard rendered with:', {
+    name: displayName,
+    imageUrl: profileImageUrl,
+    currentWeight: displayCurrentWeight,
+    targetWeight: displayTargetWeight,
+    streak: displayStreak
+  });
 
   return (
     <View style={styles.profileCard}>
@@ -157,11 +163,16 @@ export default function DashboardScreen({ onLogClick, onProfileClick }) {
         setProfile(null);
       } else if (profileData) {
         console.log('✅ Profile fetched:', {
+          id: profileData.id,
           full_name: profileData.full_name,
-          profile_image_url: profileData.profile_image_url
+          profile_image_url: profileData.profile_image_url,
+          age: profileData.age,
+          current_weight: profileData.current_weight,
+          all_fields: Object.keys(profileData)
         });
         setProfile(profileData);
       } else {
+        console.log('⚠️ No profile data returned');
         setProfile(null);
       }
 
@@ -218,12 +229,12 @@ export default function DashboardScreen({ onLogClick, onProfileClick }) {
       }
       setStreak(streakCount);
 
-      // E. Calculations
-      const tTarget = targetData?.reduce((sum, item) => sum + item.target_calories, 0) || 1;
-      const tConsumed = logData?.reduce((sum, item) => sum + item.calories_consumed, 0) || 0;
+      // E. Calculations - ensure values are numbers
+      const tTarget = targetData?.reduce((sum, item) => sum + (parseInt(item.target_calories) || 0), 0) || 1;
+      const tConsumed = logData?.reduce((sum, item) => sum + (parseFloat(item.calories_consumed) || 0), 0) || 0;
       
-      setTotalTarget(tTarget);
-      setTotalConsumed(tConsumed);
+      setTotalTarget(Math.max(tTarget, 1)); // Ensure at least 1 to avoid division by zero
+      setTotalConsumed(Math.round(tConsumed * 10) / 10); // Round to 1 decimal
 
     } catch (error) {
       console.log('Dashboard Fetch Error:', error);
@@ -292,7 +303,9 @@ export default function DashboardScreen({ onLogClick, onProfileClick }) {
               {/* Goal Mode */}
               <View style={styles.statBoxItem}>
                 <Text style={styles.statBoxLabel}>Goal</Text>
-                <Text style={styles.statBoxValue}>{profile?.goal_mode ? profile.goal_mode.toUpperCase() : 'BULK'}</Text>
+                <Text style={styles.statBoxValue}>
+                  {profile?.goal_mode ? String(profile.goal_mode).toUpperCase() : 'MAINTAIN'}
+                </Text>
               </View>
 
               {/* Divider */}
@@ -353,14 +366,14 @@ export default function DashboardScreen({ onLogClick, onProfileClick }) {
                   <View>
                     <Text style={styles.mealTitle}>Meal {meal.meal_number}</Text>
                     <Text style={styles.mealSub}>
-                      {isLogged ? log.food_name : `${meal.target_calories} kcal target`}
+                      {isLogged ? (log.food_name || 'Food logged') : `${Math.round(meal.target_calories || 0)} kcal target`}
                     </Text>
                   </View>
                 </View>
 
                 <View style={styles.cardRight}>
                    {isLogged ? (
-                     <Text style={styles.calTextActive}>{log.calories_consumed} kcal</Text>
+                     <Text style={styles.calTextActive}>{Math.round(log.calories_consumed || 0)} kcal</Text>
                    ) : (
                      <Ionicons name="chevron-forward" size={20} color="#667085" />
                    )}

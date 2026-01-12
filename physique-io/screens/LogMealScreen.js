@@ -37,11 +37,14 @@ export default function LogMealScreen({ route, onGoBack, navigation }) {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   
-  // Selection State
-  const [selectedFood, setSelectedFood] = useState(null); // The food object
+  // Selection State - UPDATED for multiple foods
+  const [selectedFood, setSelectedFood] = useState(null); // Current food being configured
   const [quantity, setQuantity] = useState('');           // The user input string (grams)
   const [pieces, setPieces] = useState('');               // Number of pieces
   const [submitting, setSubmitting] = useState(false);
+  
+  // 🆕 MULTIPLE FOODS STATE
+  const [addedFoods, setAddedFoods] = useState([]);       // Array of { food, quantity, pieces, calories }
 
   // 1. SEARCH LOGIC (Debounced)
   const performSearch = async (query) => {
@@ -106,8 +109,8 @@ export default function LogMealScreen({ route, onGoBack, navigation }) {
     return 0;
   };
 
-  // 3. SAVE LOGIC
-  const handleAddLog = async () => {
+  // 3. SAVE LOGIC - UPDATED to add multiple foods
+  const handleAddFood = async () => {
     const finalCals = calculateCalories();
     
     // Validate that either weight or pieces is entered
@@ -116,43 +119,88 @@ export default function LogMealScreen({ route, onGoBack, navigation }) {
       return;
     }
 
+    // Calculate total grams for storage
+    let totalGrams = 0;
+    
+    if (quantity) {
+      // Weight was entered directly
+      totalGrams = parseFloat(quantity);
+    } else if (pieces && selectedFood.grams_per_piece) {
+      // Convert pieces to grams
+      totalGrams = parseFloat(pieces) * selectedFood.grams_per_piece;
+    }
+
+    // 🆕 Add to the array instead of immediately saving
+    const foodEntry = {
+      id: Date.now(), // Unique ID for this entry in the list
+      food_name: selectedFood.food_name,
+      quantity_g: totalGrams,
+      calories_consumed: finalCals,
+    };
+
+    setAddedFoods([...addedFoods, foodEntry]);
+
+    // Reset the form for adding another food
+    setSelectedFood(null);
+    setQuantity('');
+    setPieces('');
+    setSearchText('');
+    setResults([]);
+
+    Alert.alert("Success", `"${selectedFood.food_name}" added! Add more or save.`);
+  };
+
+  // 🆕 Remove a food from the added foods list
+  const handleRemoveFood = (foodId) => {
+    setAddedFoods(addedFoods.filter(f => f.id !== foodId));
+  };
+
+  // 🆕 Calculate total calories from all added foods
+  const getTotalCalories = () => {
+    return addedFoods.reduce((sum, food) => sum + food.calories_consumed, 0);
+  };
+
+  // 🆕 Save all foods at once
+  const handleSaveAllFoods = async () => {
+    if (addedFoods.length === 0) {
+      Alert.alert("No Foods", "Please add at least one food to log.");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No User");
 
-      // Calculate total grams for storage
-      let totalGrams = 0;
-      
-      if (quantity) {
-        // Weight was entered directly
-        totalGrams = parseFloat(quantity);
-      } else if (pieces && selectedFood.grams_per_piece) {
-        // Convert pieces to grams
-        totalGrams = parseFloat(pieces) * selectedFood.grams_per_piece;
-      }
-
+      // Insert all foods in a single operation
       const { error } = await supabase
         .from('meal_logs')
-        .insert({
-          user_id: user.id,
-          meal_number: mealNumber,
-          food_name: selectedFood.food_name,
-          quantity_g: totalGrams,
-          calories_consumed: finalCals,
-        });
+        .insert(
+          addedFoods.map(food => ({
+            user_id: user.id,
+            meal_number: mealNumber,
+            food_name: food.food_name,
+            quantity_g: food.quantity_g,
+            calories_consumed: food.calories_consumed,
+          }))
+        );
 
       if (error) throw error;
 
-      // Success! Refresh dashboard
-      Alert.alert("Success", "Meal logged!");
+      // Success! Refresh and close
+      Alert.alert("Success", `${addedFoods.length} food(s) logged!`);
+      setAddedFoods([]);
       setSelectedFood(null);
       setQuantity('');
       setPieces('');
       setSearchText('');
 
+      // Go back to previous screen
+      handleGoBack?.();
+
     } catch (error) {
       Alert.alert("Save Error", error.message);
+    } finally {
       setSubmitting(false);
     }
   };
@@ -225,6 +273,35 @@ export default function LogMealScreen({ route, onGoBack, navigation }) {
         }
       />
 
+      {/* 🆕 ADDED FOODS LIST - Shows foods that have been added */}
+      {addedFoods.length > 0 && (
+        <View style={styles.addedFoodsSection}>
+          <Text style={styles.addedFoodsTitle}>Added Foods ({addedFoods.length})</Text>
+          {addedFoods.map((food) => (
+            <View key={food.id} style={styles.addedFoodItem}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.addedFoodName}>{food.food_name}</Text>
+                <Text style={styles.addedFoodDetails}>
+                  {food.quantity_g}g • {food.calories_consumed} kcal
+                </Text>
+              </View>
+              <TouchableOpacity 
+                onPress={() => handleRemoveFood(food.id)}
+                style={styles.removeBtn}
+              >
+                <Ionicons name="trash-outline" size={18} color="#FF6B6B" />
+              </TouchableOpacity>
+            </View>
+          ))}
+          
+          {/* TOTAL CALORIES */}
+          <View style={styles.totalCaloriesBox}>
+            <Text style={styles.totalCaloriesLabel}>TOTAL CALORIES</Text>
+            <Text style={styles.totalCaloriesValue}>{getTotalCalories()}</Text>
+          </View>
+        </View>
+      )}
+
       {/* QUANTITY INPUT OVERLAY (Only shows when food selected) */}
       {selectedFood && (
         <KeyboardAvoidingView 
@@ -280,21 +357,48 @@ export default function LogMealScreen({ route, onGoBack, navigation }) {
             >
               <TouchableOpacity 
                 style={styles.addButton}
-                onPress={handleAddLog}
+                onPress={handleAddFood}
                 disabled={submitting}
               >
                 {submitting ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <>
-                    <Text style={styles.btnText}>ADD TO LOG</Text>
-                    <Text style={styles.btnArrow}>→</Text>
+                    <Text style={styles.btnText}>ADD FOOD</Text>
+                    <Text style={styles.btnArrow}>+</Text>
                   </>
                 )}
               </TouchableOpacity>
             </LinearGradient>
           </View>
         </KeyboardAvoidingView>
+      )}
+
+      {/* 🆕 BOTTOM SAVE ALL BUTTON - Shows when foods have been added */}
+      {addedFoods.length > 0 && !selectedFood && (
+        <View style={styles.bottomSaveContainer}>
+          <LinearGradient
+            colors={['#FF8C00', '#FF6B00']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.saveAllButtonGradient}
+          >
+            <TouchableOpacity 
+              style={styles.saveAllButton}
+              onPress={handleSaveAllFoods}
+              disabled={submitting}
+            >
+              {submitting ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <Text style={styles.btnText}>SAVE ALL ({addedFoods.length})</Text>
+                  <Text style={styles.btnArrow}>→</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </LinearGradient>
+        </View>
       )}
 
     </View>
@@ -481,5 +585,97 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: '900',
+  },
+
+  // 🆕 ADDED FOODS STYLES
+  addedFoodsSection: {
+    backgroundColor: 'rgba(255, 140, 0, 0.08)',
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 140, 0, 0.3)',
+  },
+  addedFoodsTitle: {
+    color: '#FF8C00',
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: 0.6,
+    marginBottom: 12,
+  },
+  addedFoodItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  addedFoodName: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  addedFoodDetails: {
+    color: '#a8b5c9',
+    fontSize: 12,
+    marginTop: 4,
+  },
+  removeBtn: {
+    padding: 8,
+    marginLeft: 12,
+  },
+  totalCaloriesBox: {
+    backgroundColor: 'rgba(255, 140, 0, 0.15)',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    marginTop: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 140, 0, 0.3)',
+  },
+  totalCaloriesLabel: {
+    color: '#a8b5c9',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    marginBottom: 6,
+  },
+  totalCaloriesValue: {
+    color: '#FF8C00',
+    fontSize: 28,
+    fontWeight: '900',
+    letterSpacing: -1,
+  },
+
+  // Bottom Save All Button
+  bottomSaveContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(10, 22, 40, 0.9)',
+    borderTopWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    paddingBottom: 30,
+  },
+  saveAllButtonGradient: {
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  saveAllButton: {
+    flexDirection: 'row',
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
 });
