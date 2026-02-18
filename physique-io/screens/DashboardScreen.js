@@ -249,9 +249,23 @@ export default function DashboardScreen({ onLogClick, onProfileClick }) {
     fetchDashboardData();
   };
 
-  // Helper to find if a specific meal slot is logged
-  const getLogForMeal = (mealNum) => {
-    return logs.find(log => log.meal_number === mealNum);
+  // Helper to get ALL logs for a meal (not just the first one)
+  const getLogsForMeal = (mealNum) => {
+    return logs.filter(log => log.meal_number === mealNum);
+  };
+
+  // Helper to calculate total calories for a meal
+  const getTotalCaloriesForMeal = (mealNum) => {
+    const mealLogs = getLogsForMeal(mealNum);
+    return mealLogs.reduce((sum, log) => sum + (parseFloat(log.calories_consumed) || 0), 0);
+  };
+
+  // Helper to get food names for a meal
+  const getFoodNamesForMeal = (mealNum) => {
+    const mealLogs = getLogsForMeal(mealNum);
+    if (mealLogs.length === 0) return '';
+    if (mealLogs.length === 1) return mealLogs[0].food_name;
+    return `${mealLogs.length} foods logged`;
   };
 
   const progressPercent = Math.min((totalConsumed / totalTarget) * 100, 100);
@@ -339,8 +353,10 @@ export default function DashboardScreen({ onLogClick, onProfileClick }) {
         <Text style={styles.sectionTitle}>Today's Meals</Text>
         <View style={styles.listContainer}>
           {targets.map((meal) => {
-            const log = getLogForMeal(meal.meal_number);
-            const isLogged = !!log;
+            const mealLogs = getLogsForMeal(meal.meal_number);
+            const isLogged = mealLogs.length > 0;
+            const totalMealCals = getTotalCaloriesForMeal(meal.meal_number);
+            const foodDisplay = getFoodNamesForMeal(meal.meal_number);
 
             return (
               <TouchableOpacity 
@@ -366,14 +382,14 @@ export default function DashboardScreen({ onLogClick, onProfileClick }) {
                   <View>
                     <Text style={styles.mealTitle}>Meal {meal.meal_number}</Text>
                     <Text style={styles.mealSub}>
-                      {isLogged ? (log.food_name || 'Food logged') : `${Math.round(meal.target_calories || 0)} kcal target`}
+                      {isLogged ? foodDisplay : `${Math.round(meal.target_calories || 0)} kcal target`}
                     </Text>
                   </View>
                 </View>
 
                 <View style={styles.cardRight}>
                    {isLogged ? (
-                     <Text style={styles.calTextActive}>{Math.round(log.calories_consumed || 0)} kcal</Text>
+                     <Text style={styles.calTextActive}>{Math.round(totalMealCals)} kcal</Text>
                    ) : (
                      <Ionicons name="chevron-forward" size={20} color="#667085" />
                    )}
