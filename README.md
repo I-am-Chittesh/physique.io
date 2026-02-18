@@ -21,7 +21,7 @@ Physique.io is a high-performance fitness and nutrition tracking mobile applicat
 - **Icons:** Ionicons (Expo Vector Icons)
 - **Deployment:** EAS Build (Android APK/AAB)
 
-##  Getting Started
+###  Latest patch version fixed on 19th February 2026
 
 ### Prerequisites
 
