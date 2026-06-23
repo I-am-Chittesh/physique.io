@@ -89,23 +89,23 @@ const base64 = await FileSystem.readAsStringAsync(imgUri, {
           .getPublicUrl(filePath);
 
         const publicUrl = urlData.publicUrl;
-        console.log('📸 Public URL generated:', publicUrl);
+        console.log(' Public URL generated:', publicUrl);
         
         // 6. Save URL to User Profile immediately after upload
         const { data: { user } } = await supabase.auth.getUser();
         console.log('👤 Current user:', user?.id);
         
         if (user) {
-          console.log('💾 Saving image URL to profile...');
+          console.log(' Saving image URL to profile...');
           const { data: updateData, error: updateError } = await supabase
             .from('profiles')
             .update({ profile_image_url: publicUrl })
             .eq('id', user.id);
 
-          console.log('✅ Update response:', { data: updateData, error: updateError });
+          console.log(' Update response:', { data: updateData, error: updateError });
           
           if (updateError) {
-            console.error('❌ Profile update error:', updateError);
+            console.error(' Profile update error:', updateError);
             throw updateError;
           }
           
@@ -161,25 +161,25 @@ const base64 = await FileSystem.readAsStringAsync(imgUri, {
         .from('profiles')
         .upsert(updateData);
 
-      console.log("📤 Update response - Data:", data, "Error:", error);
-      console.log("📸 Saving profile_image_url:", profileImage);
+      console.log(" Update response - Data:", data, "Error:", error);
+      console.log(" Saving profile_image_url:", profileImage);
 
       if (error) {
         throw error;
       } 
       
       // Success! Notify App.js to re-check status
-      console.log("✅ Profile Updated Successfully");
+      console.log(" Profile Updated Successfully");
       Alert.alert("Success", "Profile saved! Loading next screen...");
       
       // Small delay to ensure data is persisted
       setTimeout(() => {
-        console.log("📱 Calling onProfileSaved callback");
+        console.log(" Calling onProfileSaved callback");
         onProfileSaved?.();
       }, 500);
 
     } catch (error) {
-      console.error("❌ Save Error:", error);
+      console.error(" Save Error:", error);
       Alert.alert("Save Error", error.message || "Failed to save profile");
     } finally {
       setLoading(false);

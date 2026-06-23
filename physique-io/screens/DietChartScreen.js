@@ -20,7 +20,7 @@ export default function DietChartScreen({ onDietSaved, onGoBack }) {
   
   // Data State
   const [mealCount, setMealCount] = useState(0);
-  const [targets, setTargets] = useState({}); // Stores { "1": "500", "2": "600" }
+  const [targets, setTargets] = useState({}); 
   const [totalCalories, setTotalCalories] = useState(0);
 
   // 1. Fetch the User's Meal Preference
@@ -28,11 +28,12 @@ export default function DietChartScreen({ onDietSaved, onGoBack }) {
     fetchProfileSettings();
   }, []);
 
-  // Update total whenever inputs change
+  // Update total whenever inputs change (FIXED NaN ERROR)
   useEffect(() => {
     let sum = 0;
     Object.values(targets).forEach(val => {
-      sum += parseInt(val || 0);
+      // Safely parse the integer, fallback to 0 if it's empty
+      sum += parseInt(val, 10) || 0; 
     });
     setTotalCalories(sum);
   }, [targets]);
@@ -50,7 +51,7 @@ export default function DietChartScreen({ onDietSaved, onGoBack }) {
 
       if (error) throw error;
       
-      setMealCount(data.number_of_meals || 3); // Default to 3 if null
+      setMealCount(data.number_of_meals || 3); 
     } catch (error) {
       Alert.alert("Error", "Could not fetch your settings.");
     } finally {
@@ -60,16 +61,21 @@ export default function DietChartScreen({ onDietSaved, onGoBack }) {
 
   // Handle text change for a specific meal slot
   const handleInputChange = (mealNumber, value) => {
+    // Only allow numbers to prevent NaN crashes
+    const numericValue = value.replace(/[^0-9]/g, '');
     setTargets(prev => ({
       ...prev,
-      [mealNumber]: value
+      [mealNumber]: numericValue
     }));
   };
 
+  // Calculate how many meals have valid targets set
+  const filledMealsCount = Object.values(targets).filter(val => val && parseInt(val, 10) > 0).length;
+  const progressPercentage = mealCount > 0 ? (filledMealsCount / mealCount) * 100 : 0;
+
   // 2. Save Logic
   async function handleSaveTargets() {
-    // Check if all slots are filled
-    if (Object.keys(targets).length < mealCount) {
+    if (filledMealsCount < mealCount) {
       Alert.alert("Incomplete", "Please set a target for every meal slot.");
       return;
     }
@@ -79,18 +85,16 @@ export default function DietChartScreen({ onDietSaved, onGoBack }) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No user found");
 
-      // Prepare the array for bulk insert
       const updates = [];
       for (let i = 1; i <= mealCount; i++) {
         updates.push({
           user_id: user.id,
           meal_number: i,
-          target_calories: parseInt(targets[i] || 0),
+          target_calories: parseInt(targets[i], 10) || 0,
           meal_description: `Meal ${i}`
         });
       }
 
-      // Upsert to Supabase
       const { error } = await supabase
         .from('diet_targets')
         .upsert(updates, { onConflict: 'user_id, meal_number' });
@@ -98,7 +102,6 @@ export default function DietChartScreen({ onDietSaved, onGoBack }) {
       if (error) throw error;
 
       console.log("Diet Plan Saved!");
-      // Notify App.js to re-check status and move to Dashboard
       onDietSaved();
       
     } catch (error) {
@@ -134,10 +137,10 @@ export default function DietChartScreen({ onDietSaved, onGoBack }) {
         {/* PROGRESS INDICATOR */}
         <View style={styles.progressSection}>
           <View style={styles.progressBar}>
-            <View style={[styles.progressFill, { width: `${(Object.keys(targets).length / mealCount) * 100}%` }]} />
+            <View style={[styles.progressFill, { width: `${progressPercentage}%` }]} />
           </View>
           <Text style={styles.progressText}>
-            {Object.keys(targets).length} of {mealCount} meals set
+            {filledMealsCount} of {mealCount} meals set
           </Text>
         </View>
 
@@ -175,14 +178,16 @@ export default function DietChartScreen({ onDietSaved, onGoBack }) {
                     placeholder="500"
                     placeholderTextColor="#667085"
                     keyboardType="numeric"
-                    value={targets[num]}
+                    // FIXED: Lock value to string to prevent uncontrolled input warning
+                    value={targets[num] ? String(targets[num]) : ''}
                     onChangeText={(text) => handleInputChange(num, text)}
                   />
-                  {targets[num] && (
+                  {/* FIXED: Strict ternary to prevent "Unexpected Text Node" error */}
+                  {targets[num] ? (
                     <View style={styles.inputDeco}>
                       <Text style={styles.inputDecoText}>✓</Text>
                     </View>
-                  )}
+                  ) : null}
                 </View>
               </View>
             </LinearGradient>
@@ -266,8 +271,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 13,
   },
-  
-  /* PROGRESS SECTION */
   progressSection: {
     marginBottom: 28,
     marginTop: 12,
@@ -290,8 +293,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.3,
   },
-
-  /* HEADER */
   header: {
     marginBottom: 28,
   },
@@ -308,8 +309,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     lineHeight: 24,
   },
-
-  /* MEAL LIST */
   list: {
     gap: 14,
     marginBottom: 28,
@@ -398,8 +397,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
   },
-
-  /* FOOTER */
   footerSection: {
     gap: 14,
   },

@@ -26,84 +26,80 @@ export default function AuthScreen() {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
 
-const handleAuth = async () => {
-  // Validate inputs
-  if (!email || !password) {
-    Alert.alert("Missing Fields", "Email and password are required.");
-    return;
-  }
+  const handleAuth = async () => {
+    // Validate inputs
+    if (!email || !password) {
+      Alert.alert("Missing Fields", "Email and password are required.");
+      return;
+    }
 
-  if (!isLogin && !fullName) {
-    Alert.alert("Missing Fields", "Please enter your full name.");
-    return;
-  }
+    if (!isLogin && !fullName) {
+      Alert.alert("Missing Fields", "Please enter your full name.");
+      return;
+    }
 
-  if (!isLogin && password.length < 6) {
-    Alert.alert("Weak Password", "Password must be at least 6 characters.");
-    return;
-  }
+    if (!isLogin && password.length < 6) {
+      Alert.alert("Weak Password", "Password must be at least 6 characters.");
+      return;
+    }
 
-  setLoading(true);
+    setLoading(true);
 
-  try {
-    if (isLogin) {
-      // LOGIN MODE: Check email and password exist in database
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password: password,
-      });
-
-      if (error) {
-        if (error.message.includes("Invalid login credentials")) {
-          Alert.alert(
-            "Invalid Credentials", 
-            "Email or password is incorrect. Please try again."
-          );
-        } else {
-          Alert.alert("Login Error", error.message);
-        }
-      } else {
-        // Login successful - App.js will auto-navigate to Dashboard
-        Alert.alert("Success", "Welcome back!");
-      }
-    } else {
-      // SIGNUP MODE: Create new account
-      const { data: signupData, error: signupError } = await supabase.auth.signUp({
-        email: email.trim(),
-        password: password,
-      });
-
-      if (signupError) {
-        if (signupError.message.includes("already registered")) {
-          Alert.alert(
-            "Email Already Exists", 
-            "This email is already registered. Please login or use a different email."
-          );
-        } else {
-          Alert.alert("Signup Failed", signupError.message);
-        }
-      } else if (signupData.user) {
-        // Create profile entry with user's full name
-        const { error: profileError } = await supabase.from('profiles').insert({
-          id: signupData.user.id,
-          full_name: fullName,
+    try {
+      if (isLogin) {
+        // LOGIN MODE: Check email and password exist in database
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password: password,
         });
 
-        if (profileError) {
-          Alert.alert("Profile Error", profileError.message);
+        if (error) {
+          if (error.message.includes("Invalid login credentials")) {
+            Alert.alert(
+              "Invalid Credentials", 
+              "Email or password is incorrect. Please try again."
+            );
+          } else {
+            Alert.alert("Login Error", error.message);
+          }
         } else {
+          // Login successful
+          Alert.alert("Success", "Welcome back!");
+        }
+      } else {
+        // SIGNUP MODE: Create new account and pass metadata to the database trigger
+        const { data: signupData, error: signupError } = await supabase.auth.signUp({
+          email: email.trim(),
+          password: password,
+          options: {
+            data: {
+              full_name: fullName, // <-- THIS is what the SQL trigger catches!
+            }
+          }
+        });
+
+        if (signupError) {
+          if (signupError.message.includes("already registered")) {
+            Alert.alert(
+              "Email Already Exists", 
+              "This email is already registered. Please login or use a different email."
+            );
+          } else {
+            Alert.alert("Signup Failed", signupError.message);
+          }
+        } else if (signupData.user) {
+          // No manual profile insert needed here anymore! The backend handled it.
           Alert.alert("Success", "Account created! Now setting up your physique.");
-          // App.js will auto-navigate to SetupScreen
         }
       }
+    } catch (err) {
+      console.error("Auth Error:", err);
+      Alert.alert("Error", "Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error("Auth Error:", err);
-    Alert.alert("Error", "Something went wrong. Please try again.");
-  } finally {
-    setLoading(false);
-  }
-};
+  };
+
   return (
     <KeyboardAvoidingView 
       behavior={Platform.OS === "ios" ? "padding" : "height"}
